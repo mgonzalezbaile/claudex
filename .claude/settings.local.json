@@ -15,7 +15,9 @@
       "Bash(cat:*)",
       "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/libs/llm-server/src/**)",
       "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/libs/prompt-service/src/**)",
-      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/.bmad-core/templates/**)"
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/.bmad-core/templates/**)",
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/apps/voiced/functions/.claude/commands/BMad/agents/**)",
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/.bmad-core/data/**)"
     ],
     "deny": [],
     "ask": []
