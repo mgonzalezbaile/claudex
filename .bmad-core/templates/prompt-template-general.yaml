@@ -1,0 +1,214 @@
+# <!-- Powered by BMAD™ Core -->
+template:
+  id: prompt-template-general
+  name: General Purpose Prompt Template
+  version: 1.0
+  description: Canonical structure for general-purpose LLM prompts following modern best practices
+  output:
+    format: text
+    filename: null  # User specifies output location
+    title: null     # No title needed for prompts
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: role
+    title: "ROLE"
+    instruction: |
+      Define who the AI is in 1-2 sentences. Specify their expertise, mission, and what they do.
+      Keep this concise and focused.
+
+      Placeholder format: "You are a {{SPECIALIST_TYPE}}. Your job: {{MISSION_STATEMENT}}."
+
+      Example: "You are a technical writer. Your job: create clear, concise documentation for software APIs."
+    elicit: true
+    type: paragraphs
+    examples:
+      - "You are a data analyst. Your job: extract insights from numerical data and present them clearly."
+      - "You are a customer support specialist. Your job: resolve user issues quickly and professionally."
+
+  - id: global-rules
+    title: "GLOBAL RULES"
+    instruction: |
+      Define session-wide invariants that apply to ALL interactions. Use bullet format only.
+      Include: audience, style/tone, brevity constraints, safety boundaries.
+      Keep this section short (4-8 bullets max).
+
+      Required elements:
+      - Audience: {{TARGET_AUDIENCE}}
+      - Style: {{TONE_ADJECTIVES}}
+      - Brevity: {{LENGTH_CONSTRAINT}}
+      - Safety/Boundaries: {{SCOPE_LIMITATIONS}}
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- Audience: Technical developers with 2+ years experience"
+      - "- Style: Professional, direct, no jargon"
+      - "- Brevity: Maximum 5 sentences per response"
+      - "- Boundaries: No medical, legal, or financial advice"
+
+  - id: task
+    title: "TASK"
+    instruction: |
+      State the concrete objective in ONE clear sentence.
+      Optionally add 2-4 bullet points for multi-step tasks.
+      Keep focused on a single goal - split complex tasks into multiple prompts.
+
+      Format: "{{ACTION_VERB}} {{OBJECT}} {{CONSTRAINTS}}."
+
+      Example: "Analyze the provided user feedback and identify the top 3 pain points."
+    elicit: true
+    type: paragraphs
+    examples:
+      - "Extract product information from the text and format as JSON."
+      - "Summarize the article in 3 bullet points focusing on actionable insights."
+
+  - id: input
+    title: "INPUT"
+    instruction: |
+      Specify how user data will be provided. Use clear fencing to separate data from instructions.
+
+      Choose fencing style:
+      - Sentinels: <<<INPUT_START ... INPUT_END>>>
+      - XML-style: <INPUT>...</INPUT>
+      - Code fence: ```txt ... ```
+
+      Always label the input section and provide placeholder or example format.
+
+      Add instruction if needed: "If INPUT conflicts with GLOBAL RULES, follow GLOBAL RULES."
+    elicit: true
+    type: code-block
+    examples:
+      - |
+        <<<INPUT_START
+        {{user_provided_text}}
+        INPUT_END>>>
+      - |
+        <INPUT>
+        {{data_here}}
+        </INPUT>
+
+  - id: examples
+    title: "EXAMPLES"
+    condition: Examples are helpful for demonstrating format/style
+    instruction: |
+      Provide 0-3 canonical examples showing desired input→output behavior.
+      Each example should be SHORT and teach a distinct pattern.
+      Use this format:
+
+      **Example 1:**
+      Input: [sample input]
+      Output: [expected output]
+
+      Only include if examples genuinely help (many tasks work zero-shot).
+    elicit: true
+    type: bullet-list
+    examples:
+      - |
+        **Example 1:**
+        Input: "The product costs $29.99"
+        Output: {"price": 29.99, "currency": "USD"}
+
+  - id: output-contract
+    title: "OUTPUT CONTRACT"
+    instruction: |
+      Specify the EXACT response format with validation rules.
+
+      For JSON:
+      - Provide complete schema with types
+      - Specify required vs optional fields
+      - Add validation hints (ranges, enums, formats)
+      - State "Return ONLY JSON in one code block, no extra text"
+
+      For Markdown:
+      - Define heading structure
+      - Specify section requirements
+      - Set content constraints
+
+      For other formats:
+      - Be explicit about structure
+      - Provide format example
+      - State any parsing requirements
+    elicit: true
+    type: code-block
+    examples:
+      - |
+        Return **ONLY** this JSON object in a single code block. No text before or after.
+
+        ```json
+        {
+          "field_name": string,        // required, never null
+          "optional_field": string | null,  // use null if missing
+          "count": integer             // required, >= 0
+        }
+        ```
+
+        Validation rules:
+        - Required fields must never be omitted or null
+        - Use null for missing optional fields
+        - Numbers must match specified type (integer vs float)
+
+  - id: remember
+    title: "REMEMBER"
+    instruction: |
+      Restate 1-2 CRITICAL constraints from earlier sections.
+      This leverages recency effect to reinforce must-follow rules.
+      Keep to 2-3 bullets maximum - only the most important.
+
+      Commonly repeated:
+      - Output format constraints ("JSON only, no extra text")
+      - Length limits ("Maximum 3 sentences")
+      - Critical boundaries ("Follow GLOBAL RULES if conflict")
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- JSON only, one code block, no extra text"
+      - "- Maximum 5 bullet points"
+      - "- If information is missing, return status: incomplete"
+
+metadata:
+  usage_notes: |
+    This template follows the canonical prompt structure from the OpenAI Prompt Engineering Playbook:
+
+    Order: Role → Global Rules → Task → Input → Examples (opt) → Output Contract → Remember
+
+    Key principles:
+    - Keep Role and Global Rules SHORT (leverage primacy)
+    - Fence inputs clearly (prevent injection)
+    - Make constraints machine-checkable
+    - Express boundaries positively
+    - Mirror critical rules at top and bottom
+    - One task per prompt
+
+    When to use this template:
+    - General-purpose tasks without specialized patterns
+    - Mixed analysis/generation tasks
+    - Custom workflows not covered by specialized templates
+
+    When NOT to use:
+    - Pure data extraction → use prompt-template-extraction
+    - Tool/function calling → use prompt-template-tool-calling
+    - Analysis briefs → use prompt-template-analysis
+
+  customization_tips: |
+    Customize by:
+    1. Replace {{PLACEHOLDERS}} with actual values
+    2. Adjust GLOBAL RULES to match your audience/constraints
+    3. Choose appropriate fencing style for INPUT section
+    4. Add/remove EXAMPLES based on task complexity
+    5. Design OUTPUT CONTRACT for your specific format needs
+    6. Select 1-2 rules for REMEMBER section (most critical only)
+
+  validation_checklist: |
+    Before using this prompt:
+    - [ ] Role is 1-2 sentences, clear and specific
+    - [ ] Global Rules are bullets, 4-8 max
+    - [ ] Task is single sentence (or short bullet steps)
+    - [ ] Input is fenced with clear delimiters
+    - [ ] Examples (if any) are short and canonical
+    - [ ] Output Contract is strict and parseable
+    - [ ] Remember section restates 1-2 critical rules
+    - [ ] No conflicting instructions across sections
+    - [ ] All constraints are positive and explicit

@@ -1,0 +1,340 @@
+# <!-- Powered by BMAD™ Core -->
+template:
+  id: execution-plan-template-v1
+  name: Execution Plan Document
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/execution-plan.md
+    title: "{{feature_name}} Execution Plan"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: introduction
+    title: Introduction
+    instruction: |
+      Review any provided relevant documents (PRD, architecture, user stories, etc.) to gather all context.
+
+      CRITICAL: Before proceeding with document creation:
+      1. Use context7 MCP to query up-to-date documentation for any libraries, SDKs, frameworks, third-party services, or vendors mentioned
+      2. Use sequential-thinking MCP when analyzing complex subjects or considering multiple alternatives
+      3. Ask the user to clarify ANY unclear requirements, technical decisions, or implementation approaches
+      4. DO NOT produce document sections containing alternatives, options, or rationale discussions
+      5. Documents must contain ONLY the final decisions after all questions are resolved
+    sections:
+      - id: intro-content
+        content: |
+          This document provides a comprehensive execution plan for implementing {{feature_name}}. It includes detailed implementation steps, test strategy, and a task checklist for systematic development and validation.
+      - id: changelog
+        title: Change Log
+        type: table
+        columns: [Date, Version, Description, Author]
+        instruction: Track document versions and changes
+
+  - id: executive-summary
+    title: Executive Summary
+    instruction: |
+      Provide a high-level overview (3-5 sentences) that includes:
+      - What is being implemented and why
+      - Key technical approaches chosen
+      - Expected impact on the system
+      - High-level timeline or complexity estimate
+
+      REMEMBER: Use context7 MCP for any library/framework documentation queries before writing this section.
+    elicit: true
+
+  - id: implementation-overview
+    title: Implementation Overview
+    instruction: |
+      Provide a comprehensive overview of the implementation including:
+
+      1. High-Level Flow
+         - Describe the end-to-end flow of the feature
+         - Include sequence diagrams if helpful (use mermaid)
+         - Show how components/services interact
+
+      2. Code Changes Summary
+         - List all files that will be created, modified, or deleted
+         - Briefly explain the purpose of each change
+         - Identify any refactoring needed
+
+      Use sequential-thinking MCP if the implementation involves complex decision trees or multiple interconnected changes.
+    elicit: true
+    sections:
+      - id: high-level-flow
+        title: High-Level Flow
+        instruction: |
+          Describe the end-to-end flow with clear steps. Create a mermaid sequence or flow diagram if it helps clarify the implementation.
+      - id: code-changes-summary
+        title: Code Changes Summary
+        type: table
+        columns: [File Path, Change Type, Purpose]
+        instruction: |
+          List all files affected by this implementation.
+          Change Type should be: Create, Modify, Delete, or Refactor
+        examples:
+          - "| src/services/user-service.ts | Modify | Add new method for user preference updates |"
+          - "| src/models/user-preference.ts | Create | New model for user preferences |"
+          - "| src/api/routes/user-routes.ts | Modify | Add new endpoint for preference management |"
+
+  - id: test-and-eval-strategy
+    title: Test Suite and/or Evals Suite Definition
+    instruction: |
+      Define comprehensive testing strategy including:
+
+      1. Unit Tests
+         - Identify what needs unit test coverage
+         - List key test scenarios
+
+      2. Integration Tests
+         - Define integration test scenarios
+         - Identify test dependencies (databases, services, etc.)
+
+      3. Evaluation Suite (if applicable for LLM/AI features)
+         - Define evaluation criteria
+         - List test cases for model behavior
+         - Specify expected outcomes
+
+      4. Test Execution Commands
+         CRITICAL: Always use the exact command format:
+         ```
+         cd /Users/maikel/Workspace/Pelago/voiced/pelago/apps/voiced/functions && env FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 MOCK_OPENAI=true NODE_OPTIONS='--experimental-vm-modules' yarn jest --testPathPattern=<file_path> --testNamePattern=<name_pattern>
+         ```
+         Where:
+         - <file_path> is the test file path
+         - <name_pattern> allows executing a subset of tests
+    elicit: true
+    sections:
+      - id: unit-tests
+        title: Unit Tests
+        instruction: |
+          List all unit tests to be created or modified. For each test file:
+          - Describe test scenarios
+          - List key edge cases
+          - Specify mocking requirements
+        repeatable: true
+        template: |
+          **{{test_file_path}}**
+
+          Test Scenarios:
+          - {{scenario_1}}
+          - {{scenario_2}}
+
+          Edge Cases:
+          - {{edge_case_1}}
+
+          Mocking Required: {{mocking_details}}
+
+      - id: integration-tests
+        title: Integration Tests
+        instruction: |
+          Define integration test scenarios and dependencies.
+        repeatable: true
+        template: |
+          **{{integration_test_name}}**
+
+          Scenario: {{scenario_description}}
+
+          Dependencies:
+          - {{dependency_1}}
+
+          Test Data Requirements: {{test_data_needs}}
+
+      - id: eval-suite
+        title: Evaluation Suite (LLM/AI Features)
+        condition: Feature involves LLM or AI components
+        instruction: |
+          For LLM/AI features, define evaluation criteria and test cases.
+          Skip this section if not applicable.
+        repeatable: true
+        template: |
+          **{{eval_test_name}}**
+
+          Evaluation Criteria:
+          - {{criterion_1}}
+
+          Test Cases:
+          - Input: {{input_1}}
+          - Expected Output: {{expected_1}}
+
+          Success Metrics: {{success_metrics}}
+
+      - id: test-execution-commands
+        title: Test Execution Commands
+        type: code
+        language: bash
+        instruction: |
+          Provide exact commands for running tests. Use the standard format specified above.
+          Include commands for:
+          - Running all tests for this feature
+          - Running specific test files
+          - Running specific test cases
+        template: |
+          # Run all tests for this feature
+          cd /Users/maikel/Workspace/Pelago/voiced/pelago/apps/voiced/functions && env FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 MOCK_OPENAI=true NODE_OPTIONS='--experimental-vm-modules' yarn jest --testPathPattern={{feature_test_pattern}}
+
+          # Run specific test file
+          cd /Users/maikel/Workspace/Pelago/voiced/pelago/apps/voiced/functions && env FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 MOCK_OPENAI=true NODE_OPTIONS='--experimental-vm-modules' yarn jest --testPathPattern={{specific_test_file}}
+
+          # Run specific test case
+          cd /Users/maikel/Workspace/Pelago/voiced/pelago/apps/voiced/functions && env FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 MOCK_OPENAI=true NODE_OPTIONS='--experimental-vm-modules' yarn jest --testPathPattern={{test_file}} --testNamePattern={{test_name_pattern}}
+
+  - id: file-by-file-implementation
+    title: File-by-File Implementation
+    instruction: |
+      Provide detailed implementation guidance for each file that will be created or modified.
+
+      For each file:
+      1. State whether it's a new file or modification
+      2. Describe its purpose and responsibilities
+      3. List key methods/functions/components to implement
+      4. Specify important implementation details
+      5. Note any patterns or conventions to follow
+      6. Identify dependencies and imports needed
+
+      Order files logically (models → services → controllers → routes, etc.)
+
+      Use context7 MCP if you need to reference library documentation for implementation details.
+    elicit: true
+    repeatable: true
+    sections:
+      - id: file-implementation
+        title: "{{file_path}}"
+        repeatable: true
+        template: |
+          **Change Type:** {{change_type}}
+
+          **Purpose:** {{file_purpose}}
+
+          **Key Implementation Items:**
+          - {{implementation_item_1}}
+          - {{implementation_item_2}}
+
+          **Dependencies:**
+          ```typescript
+          {{import_statements}}
+          ```
+
+          **Implementation Notes:**
+          {{implementation_notes}}
+
+          **Pattern/Convention to Follow:**
+          {{pattern_to_follow}}
+
+  - id: code-quality
+    title: Code Quality
+    instruction: |
+      Define code quality checks that must be performed during and after implementation.
+
+      Include:
+      1. Type checking command
+      2. Linting command
+      3. Formatting command
+      4. Test execution (reference test commands from earlier section)
+
+      All checks must pass before the implementation is considered complete.
+    sections:
+      - id: quality-checks
+        title: Quality Checks
+        type: code
+        language: bash
+        template: |
+          # Type checking
+          yarn check:types
+
+          # Linting
+          yarn check:lint
+
+          # Auto-fix formatting
+          yarn fix:format
+
+          # Run tests
+          cd /Users/maikel/Workspace/Pelago/voiced/pelago/apps/voiced/functions && env FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 MOCK_OPENAI=true NODE_OPTIONS='--experimental-vm-modules' yarn jest --testPathPattern={{test_pattern}}
+
+      - id: definition-of-done
+        title: Definition of Done
+        instruction: |
+          List all criteria that must be met for this implementation to be considered complete.
+        template: |
+          - [ ] All files implemented as specified
+          - [ ] Unit tests written and passing
+          - [ ] Integration tests written and passing
+          - [ ] Type checking passes (yarn check:types)
+          - [ ] Linting passes (yarn check:lint)
+          - [ ] Code formatted (yarn fix:format)
+          - [ ] No console.log or debug statements
+          - [ ] Error handling implemented
+          - [ ] Documentation updated
+          - [ ] {{additional_criteria}}
+
+  - id: implementation-checklist
+    title: Implementation Checklist
+    instruction: |
+      Break down the implementation into a sequential checklist of tasks.
+
+      This checklist will be used to track progress during implementation.
+      Order tasks logically (setup → models → services → tests → quality checks).
+
+      Each task should be:
+      - Specific and actionable
+      - Completable independently (or note dependencies)
+      - Small enough to complete in one session
+    sections:
+      - id: checklist-items
+        title: Tasks
+        instruction: |
+          Create a comprehensive checklist. Group related tasks together.
+          Use markdown checkboxes: - [ ] Task description
+        template: |
+          ## Setup
+          - [ ] {{setup_task_1}}
+          - [ ] {{setup_task_2}}
+
+          ## Implementation
+          - [ ] {{implementation_task_1}}
+          - [ ] {{implementation_task_2}}
+
+          ## Testing
+          - [ ] {{test_task_1}}
+          - [ ] {{test_task_2}}
+
+          ## Code Quality
+          - [ ] Run type checking (yarn check:types)
+          - [ ] Run linting (yarn check:lint)
+          - [ ] Fix formatting (yarn fix:format)
+          - [ ] Execute all tests and verify they pass
+
+          ## Documentation
+          - [ ] {{documentation_task_1}}
+
+          ## Review
+          - [ ] {{review_task_1}}
+
+  - id: notes-and-considerations
+    title: Notes and Considerations
+    instruction: |
+      Document any important notes, gotchas, or considerations that developers should be aware of.
+
+      Include:
+      - Known limitations or constraints
+      - Potential issues to watch out for
+      - Future improvements or technical debt
+      - Dependencies on other work
+      - Performance considerations
+    elicit: true
+    template: |
+      **Important Considerations:**
+      - {{consideration_1}}
+      - {{consideration_2}}
+
+      **Known Limitations:**
+      - {{limitation_1}}
+
+      **Future Improvements:**
+      - {{future_improvement_1}}
+
+      **Dependencies:**
+      - {{dependency_1}}

@@ -1,0 +1,270 @@
+# <!-- Powered by BMAD™ Core -->
+template:
+  id: prompt-template-extraction
+  name: Data Extraction Prompt Template
+  version: 1.0
+  description: Specialized template for extracting structured data from text, optimized for JSON output and machine consumption
+  output:
+    format: text
+    filename: null
+    title: null
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: role
+    title: "ROLE"
+    instruction: |
+      Define extraction specialist role. Keep to 1 sentence.
+
+      Format: "You extract {{DATA_TYPE}} from {{SOURCE_TYPE}}."
+
+      Example: "You extract product information from e-commerce descriptions."
+    elicit: true
+    type: paragraphs
+    examples:
+      - "You extract contact details from email signatures."
+      - "You extract financial data from quarterly reports."
+
+  - id: global-rules
+    title: "GLOBAL RULES"
+    instruction: |
+      Define strict extraction rules. Critical for data quality.
+
+      Required rules:
+      - Output: JSON only, one code block, no prose
+      - Missing data: Use null (never omit fields or fabricate data)
+      - Confidence: Only extract when confident (threshold if applicable)
+      - Validation: Follow schema strictly
+
+      Keep to 4-6 bullets.
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- Output: JSON only in one code block, no text before/after"
+      - "- Missing data: Use null, never fabricate or guess"
+      - "- Confidence: Only extract if 90%+ certain"
+      - "- Validation: All fields must match specified types"
+
+  - id: task
+    title: "TASK"
+    instruction: |
+      State extraction objective in one sentence.
+
+      Format: "Extract {{FIELDS}} from the provided {{SOURCE}}."
+
+      Be specific about what fields to extract (reference schema).
+    elicit: true
+    type: paragraphs
+    examples:
+      - "Extract all product attributes from the provided description."
+      - "Extract contact information including name, email, phone from the text."
+
+  - id: input
+    title: "INPUT"
+    instruction: |
+      Fence the source data clearly. Use sentinels or code blocks.
+
+      Format:
+      ```txt
+      {{source_text_here}}
+      ```
+
+      Or:
+      <<<INPUT_START
+      {{source_text_here}}
+      INPUT_END>>>
+
+      Add instruction: "Extract ONLY from INPUT. Do not use external knowledge."
+    elicit: true
+    type: code-block
+    examples:
+      - |
+        ```txt
+        {{paste_source_text_here}}
+        ```
+
+        Extract ONLY information explicitly stated in INPUT.
+
+  - id: examples
+    title: "EXAMPLES"
+    condition: Examples help demonstrate extraction patterns
+    instruction: |
+      Provide 1-2 examples showing input text → extracted JSON.
+      Keep examples SHORT and show:
+      - Complete/ideal extraction
+      - Partial/missing data handling (null values)
+
+      Format:
+      **Example 1: Complete Data**
+      Input: [text]
+      Output: [JSON]
+
+      **Example 2: Partial Data**
+      Input: [text with missing info]
+      Output: [JSON with nulls]
+    elicit: true
+    type: code-block
+    examples:
+      - |
+        **Example 1:**
+        Input: "Widget Pro - $29.99 - Available in red, blue"
+        Output:
+        ```json
+        {
+          "name": "Widget Pro",
+          "price": 29.99,
+          "currency": "USD",
+          "colors": ["red", "blue"],
+          "in_stock": null
+        }
+        ```
+
+  - id: schema
+    title: "OUTPUT CONTRACT"
+    instruction: |
+      Define complete JSON schema with:
+      - All fields (required and optional)
+      - Exact types (string, integer, boolean, array, null)
+      - Constraints (enums, ranges, formats)
+      - Required vs optional handling
+      - Edge case rules (empty arrays, null handling)
+
+      CRITICAL: Start with "Return ONLY JSON in one code block, no extra text."
+
+      Schema format:
+      ```json
+      {
+        "field": type // comment: constraints, required/optional
+      }
+      ```
+
+      Add validation rules section below schema.
+    elicit: true
+    type: code-block
+    examples:
+      - |
+        Return **ONLY** this JSON object in a single code block. No text before or after the JSON.
+
+        ```json
+        {
+          "name": string,              // required, never null
+          "price": number,             // required, positive, 2 decimals
+          "currency": string,          // required, 3-letter ISO code
+          "colors": string[],          // required, empty [] if none
+          "in_stock": boolean | null,  // optional, null if unknown
+          "notes": string | null       // optional, null if none
+        }
+        ```
+
+        Validation rules:
+        - name: non-empty, max 200 chars
+        - price: positive number, exactly 2 decimal places
+        - currency: valid ISO 4217 code (USD, EUR, GBP, etc.)
+        - colors: array of 1-50 char strings, empty [] if none mentioned
+        - in_stock: true/false if explicitly stated, null if not mentioned
+        - notes: any additional info, null if none
+
+        Edge cases:
+        - If required field not found in text: return status: "incomplete"
+        - If field has invalid format: set to null and note in errors array
+        - Never fabricate data not in INPUT
+
+  - id: remember
+    title: "REMEMBER"
+    instruction: |
+      Restate 2-3 most critical extraction rules.
+
+      Typically include:
+      - JSON only, no extra text
+      - Use null for missing optional fields
+      - Never fabricate data
+      - Follow schema exactly
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- JSON only, one code block, no extra text"
+      - "- Use null for missing data, never fabricate"
+      - "- Follow schema types exactly"
+
+metadata:
+  usage_notes: |
+    This template is optimized for data extraction tasks where:
+    - Source is unstructured or semi-structured text
+    - Output must be machine-parseable (JSON)
+    - Schema is known and fixed
+    - Data quality and accuracy are critical
+
+    Key differences from general template:
+    - Emphasizes JSON-only output (no prose)
+    - Explicit null handling for missing data
+    - Stricter validation rules
+    - Focus on "extract what's there, don't fabricate"
+
+    Common use cases:
+    - Extracting product info from descriptions
+    - Parsing contact details from text
+    - Converting forms/documents to structured data
+    - Scraping data from unstructured sources
+    - Entity extraction and classification
+
+  customization_tips: |
+    Customize by:
+    1. Define specific field schema in OUTPUT CONTRACT
+    2. Set confidence threshold in GLOBAL RULES if needed
+    3. Add domain-specific validation rules
+    4. Include 1-2 examples showing edge cases
+    5. Adjust null handling policy (null vs omit vs default)
+    6. Add error reporting if extraction can fail
+
+  validation_checklist: |
+    Before using this extraction prompt:
+    - [ ] Role specifies extraction specialist (1 sentence)
+    - [ ] Global Rules include "JSON only, no extra text"
+    - [ ] Global Rules specify null handling
+    - [ ] Task clearly states what to extract
+    - [ ] INPUT is fenced with clear delimiters
+    - [ ] Schema includes ALL fields with types
+    - [ ] Required vs optional fields marked clearly
+    - [ ] Validation rules specify constraints
+    - [ ] Edge case handling defined
+    - [ ] Remember section restates JSON-only rule
+    - [ ] Examples show both complete and partial extraction
+
+  advanced_patterns: |
+    **Status + Data Pattern** (for extractions that can fail):
+    ```json
+    {
+      "status": "complete" | "partial" | "failed",
+      "data": {
+        // extracted fields
+      },
+      "errors": string[] | null,
+      "confidence": 0.0-1.0
+    }
+    ```
+
+    **Multi-Entity Pattern** (extracting multiple items):
+    ```json
+    {
+      "count": integer,
+      "items": [
+        {
+          // entity fields
+        }
+      ]
+    }
+    ```
+
+    **Classification + Extraction Pattern**:
+    ```json
+    {
+      "category": string,
+      "confidence": 0.0-1.0,
+      "attributes": {
+        // extracted fields
+      }
+    }
+    ```

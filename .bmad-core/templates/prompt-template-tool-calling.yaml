@@ -1,0 +1,308 @@
+# <!-- Powered by BMAD™ Core -->
+template:
+  id: prompt-template-tool-calling
+  name: Tool-Calling Agent Prompt Template
+  version: 1.0
+  description: Specialized template for agents that make decisions about calling tools/functions, optimized for API/function calling systems
+  output:
+    format: text
+    filename: null
+    title: null
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: role
+    title: "ROLE"
+    instruction: |
+      Define tool-decision agent role. Focus on decision-making capability.
+
+      Format: "You decide whether to call tools to {{ACCOMPLISH_WHAT}}."
+
+      Example: "You decide whether to call tools to answer user questions."
+    elicit: true
+    type: paragraphs
+    examples:
+      - "You decide whether to call tools to complete the requested task."
+      - "You route requests to appropriate tools based on user intent."
+
+  - id: global-rules
+    title: "GLOBAL RULES"
+    instruction: |
+      Define tool-calling policy and constraints.
+
+      Required elements:
+      - When to call tools (necessity criteria)
+      - When NOT to call (avoid unnecessary calls)
+      - Parameter discipline (exact names, types, required fields)
+      - Failure handling (retry policy, error communication)
+      - Cost awareness (prefer fewer, richer calls)
+
+      Keep to 5-8 bullets.
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- Call tools ONLY when required to complete the task"
+      - "- If information is in INPUT, do not call tools"
+      - "- Never guess or fabricate tool parameters"
+      - "- If parameter is missing, ask user for clarification"
+      - "- External actions (email, file writes) require user confirmation"
+      - "- Retry failed calls once with corrected parameters"
+
+  - id: tools
+    title: "TOOLS"
+    instruction: |
+      Define available tools with complete signatures.
+
+      Format for each tool:
+      - tool_name(param1: type, param2: type) → return_type  // description and when to use
+
+      Include:
+      - Exact parameter names and types
+      - Return type
+      - Brief usage description
+      - When to use vs not use
+
+      Example:
+      - search(query: string) → results[]  // use for web lookup when facts are missing
+      - calc(expr: string) → number        // use for arithmetic; prefer exact math to estimation
+      - send_email(to: string, subject: string, body: string) → id  // only after explicit user approval
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- search(query: string) → results[]  // use for web lookup when current facts needed"
+      - "- calc(expression: string) → number  // use for mathematical calculations"
+      - "- get_weather(location: string, units: 'C'|'F') → weather_data  // current weather only"
+
+  - id: tool-selection-logic
+    title: "TOOL SELECTION"
+    instruction: |
+      Define explicit decision logic for when to call which tool.
+
+      Format as if-then rules:
+      - If {{CONDITION}}, call {{TOOL}}
+      - If {{CONDITION}}, do not call tools
+      - If {{CONDITION}}, ask user for clarification
+
+      Cover:
+      - When each tool should be called
+      - When no tool is needed (answer from context)
+      - When multiple tools apply (priority/sequence)
+      - When to ask vs proceed
+
+      Keep to 4-8 rules.
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- If task is answerable from INPUT, do not call tools"
+      - "- If numeric calculation needed, call calc()"
+      - "- If current facts needed and not in INPUT, call search()"
+      - "- If required parameter missing, ask one clarifying question"
+      - "- If action affects external systems, ask for confirmation first"
+
+  - id: task
+    title: "TASK"
+    instruction: |
+      State the decision-making objective clearly.
+
+      Format: "Determine which tool(s) to call to {{ACCOMPLISH_GOAL}}, or proceed without tools if possible."
+
+      Keep focused on the decision aspect, not the execution.
+    elicit: true
+    type: paragraphs
+    examples:
+      - "Determine which tool(s) to call to answer the user's question, or answer directly if tools aren't needed."
+      - "Decide whether to search, calculate, or respond from existing context."
+
+  - id: input
+    title: "INPUT"
+    instruction: |
+      Fence the user request and any provided context.
+
+      Include:
+      - User's request/question
+      - Any context provided
+      - Previous conversation (if relevant)
+
+      Format:
+      <<<INPUT_START
+      Request: {{user_request}}
+      Context: {{any_provided_context}}
+      INPUT_END>>>
+    elicit: true
+    type: code-block
+    examples:
+      - |
+        <<<INPUT_START
+        Request: {{user_question_or_command}}
+        Context: {{optional_background_info}}
+        INPUT_END>>>
+
+  - id: output-contract
+    title: "OUTPUT CONTRACT"
+    instruction: |
+      Define tool decision output format.
+
+      Two options:
+
+      **Option 1: Structured Decision (JSON)**
+      ```json
+      {
+        "should_call_tool": boolean,
+        "tool_name": string | null,
+        "arguments": {
+          "param": "value"
+        },
+        "reason": string  // one sentence explaining decision
+      }
+      ```
+
+      **Option 2: Natural Language + Tool Call**
+      If your system uses natural language to trigger tools:
+      - Specify exact syntax for tool invocation
+      - Define how to communicate reasoning
+      - State parameter format
+
+      Add validation rules:
+      - Parameter names must match tool definitions exactly
+      - Required parameters must never be omitted
+      - Use null for no tool call
+    elicit: true
+    type: code-block
+    examples:
+      - |
+        Return **ONLY** this JSON object:
+
+        ```json
+        {
+          "should_call_tool": boolean,
+          "tool_name": string | null,  // exact tool name or null
+          "arguments": object,         // parameters or {}
+          "reason": string             // one sentence explaining decision
+        }
+        ```
+
+        Validation rules:
+        - tool_name must exactly match defined tool names
+        - arguments must include all required parameters
+        - argument keys must match parameter names exactly
+        - use null for tool_name if no tool needed
+        - reason explains why tool was/wasn't called
+
+  - id: failure-handling
+    title: "FAILURE HANDLING"
+    instruction: |
+      Define what to do when tool calls fail.
+
+      Include:
+      - Retry policy (once? with corrections?)
+      - Error communication (how to report failure to user)
+      - Fallback behavior (proceed without tool? ask user?)
+      - Partial success handling (some tools succeed, others fail)
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- If tool fails, retry once with corrected parameters"
+      - "- If retry fails, report error and ask user for guidance"
+      - "- Never proceed with fabricated data if tool fails"
+      - "- For partial failures, return successful results and note failures"
+
+  - id: remember
+    title: "REMEMBER"
+    instruction: |
+      Restate 2-3 critical tool-calling rules.
+
+      Typically:
+      - Call tools only when necessary
+      - Exact parameter names
+      - Ask if parameters missing
+      - Get confirmation for external actions
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- Call tools ONLY if required, not available in INPUT"
+      - "- Use exact parameter names from tool definitions"
+      - "- Ask for missing required parameters, never guess"
+
+metadata:
+  usage_notes: |
+    This template is optimized for tool/function calling agents where:
+    - Agent must decide when to call vs answer directly
+    - Multiple tools are available
+    - Parameters must be exact
+    - Cost/latency of tool calls matters
+    - External actions need confirmation
+
+    Key differences from general template:
+    - Adds TOOLS section with signatures
+    - Adds TOOL SELECTION section with decision logic
+    - Emphasizes parameter exactness
+    - Includes failure handling
+    - Focuses on minimizing unnecessary calls
+
+    Common use cases:
+    - Conversational agents with tools (search, calc, etc.)
+    - API routing agents
+    - Function-calling LLM applications
+    - Agents with external integrations
+    - Multi-tool orchestration
+
+  customization_tips: |
+    Customize by:
+    1. Define all available tools with exact signatures
+    2. Specify decision logic (when to call which tool)
+    3. Choose output format (JSON decision vs natural language)
+    4. Set retry and failure policies
+    5. Define confirmation requirements for risky actions
+    6. Add cost/latency optimization rules if needed
+
+  validation_checklist: |
+    Before using this tool-calling prompt:
+    - [ ] Role mentions tool decision-making
+    - [ ] Global Rules include necessity criteria
+    - [ ] All tools defined with types and descriptions
+    - [ ] Tool selection logic covers common cases
+    - [ ] Parameter names match tool definitions exactly
+    - [ ] Output contract specifies decision format
+    - [ ] Failure handling defined
+    - [ ] Missing parameter policy stated
+    - [ ] External action confirmation required
+    - [ ] Remember section restates necessity rule
+
+  advanced_patterns: |
+    **Multi-Step Tool Chaining**:
+    ```
+    Allow multiple tool calls in sequence:
+    [
+      {"tool": "search", "args": {...}},
+      {"tool": "summarize", "args": {"input": "{{search_result}}"}}
+    ]
+    ```
+
+    **Conditional Tool Calling**:
+    ```
+    If condition A → call tool_1
+    Else if condition B → call tool_2
+    Else → answer directly
+    ```
+
+    **Parallel Tool Calling**:
+    ```
+    When multiple independent tools needed:
+    {
+      "tools": [
+        {"name": "search", "args": {...}},
+        {"name": "calc", "args": {...}}
+      ],
+      "execution": "parallel"
+    }
+    ```
+
+    **Progressive Enhancement**:
+    ```
+    1. Try to answer from INPUT
+    2. If insufficient, call lightweight tool (cache)
+    3. If still insufficient, call expensive tool (API)
+    ```

@@ -1,0 +1,268 @@
+# <!-- Powered by BMAD™ Core -->
+template:
+  id: prompt-template-analysis
+  name: Analysis Brief Prompt Template
+  version: 1.0
+  description: Specialized template for producing tight, decision-ready analysis briefs with focus on actionability
+  output:
+    format: text
+    filename: null
+    title: null
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+sections:
+  - id: role
+    title: "ROLE"
+    instruction: |
+      Define analyst role with emphasis on decision support.
+
+      Format: "You produce tight, decision-ready {{ANALYSIS_TYPE}}."
+
+      Example: "You produce tight, decision-ready market analysis briefs."
+
+      Keep to 1 sentence. Focus on output quality (tight, actionable, decision-ready).
+    elicit: true
+    type: paragraphs
+    examples:
+      - "You produce tight, decision-ready competitive analysis briefs."
+      - "You produce concise, actionable technical assessments."
+
+  - id: global-rules
+    title: "GLOBAL RULES"
+    instruction: |
+      Define analysis style and constraints focused on brevity and action-orientation.
+
+      Required elements:
+      - Structure: Answer-first, then supporting evidence
+      - Brevity: Strict word/sentence limit
+      - Focus: Actionability over completeness
+      - Style: Direct, no hedging or filler
+
+      Keep to 4-6 bullets emphasizing concision.
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- Answer-first: Lead with conclusion, then evidence"
+      - "- Brevity: Maximum 120 words unless asked to expand"
+      - "- Focus: Actionable insights only, omit background"
+      - "- Style: Direct, no hedging phrases ('might', 'possibly')"
+
+  - id: task
+    title: "TASK"
+    instruction: |
+      State the analysis objective with emphasis on what decision it supports.
+
+      Format: "Analyze {{SUBJECT}} to determine {{DECISION_QUESTION}}."
+
+      Example: "Analyze competitor pricing to determine optimal price point."
+
+      Keep focused on the business question or decision being supported.
+    elicit: true
+    type: paragraphs
+    examples:
+      - "Analyze user feedback to identify top 3 product improvements."
+      - "Analyze technical requirements to assess implementation feasibility."
+
+  - id: input
+    title: "INPUT"
+    instruction: |
+      Fence the data/content to analyze.
+
+      Format:
+      ```txt
+      {{data_to_analyze}}
+      ```
+
+      Add instruction about focus:
+      "Focus analysis on {{SPECIFIC_ASPECT}}. Ignore {{WHAT_TO_EXCLUDE}}."
+    elicit: true
+    type: code-block
+    examples:
+      - |
+        ```txt
+        {{paste_data_documents_reports_here}}
+        ```
+
+        Focus analysis on actionable insights. Ignore historical context unless directly relevant.
+
+  - id: output-format
+    title: "OUTPUT FORMAT"
+    instruction: |
+      Define analysis brief structure. Use consistent format optimized for scanning.
+
+      Recommended structure:
+
+      **[Concise Heading (≤10 words)]**
+
+      **Key Findings:**
+      - **Finding 1**: [One sentence]
+        - Evidence: [Cite data]
+        - Implication: [So what?]
+        - Action: [What to do]
+
+      - **Finding 2**: [One sentence]
+        - Evidence: [Cite data]
+        - Implication: [So what?]
+        - Action: [What to do]
+
+      [Repeat for 3-5 findings max]
+
+      Alternatives:
+      - Bullet format (finding → implication → action)
+      - Table format (Finding | Evidence | Action)
+      - Executive summary + details
+
+      Choose format based on audience and complexity.
+    elicit: true
+    type: code-block
+    examples:
+      - |
+        Format your analysis as:
+
+        **[Brief Heading]**
+
+        **Key Findings** (3-5 bullets):
+        - **Finding**: [One sentence observation]
+          - **Evidence**: [Specific data point]
+          - **Implication**: [Why this matters]
+          - **Action**: [Recommended next step]
+
+        Maximum 150 words total.
+
+  - id: constraints
+    title: "ANALYSIS CONSTRAINTS"
+    instruction: |
+      Add specific constraints for this analysis type.
+
+      Common constraints:
+      - Top N items only (top 3 findings, top 5 risks)
+      - Prioritization criteria (by impact, urgency, feasibility)
+      - Evidence requirements (must cite data, no opinions)
+      - Confidence levels (if uncertainty exists)
+      - Time horizon (short-term vs long-term implications)
+
+      Keep to 3-5 specific constraints.
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- Maximum 3 findings, prioritized by business impact"
+      - "- Each finding must cite specific data from INPUT"
+      - "- Each action must be achievable within 30 days"
+      - "- Include confidence level (high/medium/low) for each finding"
+
+  - id: remember
+    title: "REMEMBER"
+    instruction: |
+      Restate 1-2 critical analysis principles.
+
+      Typically:
+      - Answer-first structure
+      - Word/finding limit
+      - Actionability requirement
+      - Evidence citation
+
+      Keep to 2-3 bullets max.
+    elicit: true
+    type: bullet-list
+    examples:
+      - "- Answer-first, maximum 120 words"
+      - "- 3 findings maximum, each with specific action"
+      - "- Cite evidence from INPUT for every claim"
+
+metadata:
+  usage_notes: |
+    This template is optimized for analysis tasks where:
+    - Output drives decisions (not just information)
+    - Brevity is critical (exec summaries, quick briefs)
+    - Actionability matters more than completeness
+    - Reader needs to scan and act quickly
+    - Data/evidence must support claims
+
+    Key differences from general template:
+    - Emphasizes answer-first structure
+    - Strict brevity constraints
+    - Focus on finding → implication → action pattern
+    - Prioritization built in (top N)
+    - Evidence citation required
+
+    Common use cases:
+    - Executive summaries
+    - Competitive intelligence briefs
+    - Technical feasibility assessments
+    - User research synthesis
+    - Risk analysis reports
+    - Market opportunity briefs
+
+  customization_tips: |
+    Customize by:
+    1. Set word/sentence limit appropriate for audience
+    2. Define prioritization criteria (impact, urgency, etc.)
+    3. Choose output structure (bullets, table, heading+body)
+    4. Specify number of findings (3-5 typical)
+    5. Add domain-specific constraints
+    6. Define confidence/uncertainty handling
+
+  validation_checklist: |
+    Before using this analysis prompt:
+    - [ ] Role emphasizes decision-ready output
+    - [ ] Global Rules include answer-first structure
+    - [ ] Strict word/finding limit specified
+    - [ ] Task tied to specific decision question
+    - [ ] Input fenced and focus defined
+    - [ ] Output format specifies structure clearly
+    - [ ] Finding → Implication → Action pattern included
+    - [ ] Evidence citation required
+    - [ ] Prioritization criteria defined
+    - [ ] Remember section restates brevity constraint
+
+  advanced_patterns: |
+    **SWOT Analysis Format**:
+    ```
+    **Strengths** (top 3):
+    - [Finding with evidence and implication]
+
+    **Weaknesses** (top 3):
+    - [Finding with evidence and implication]
+
+    **Opportunities** (top 3):
+    - [Finding with action]
+
+    **Threats** (top 3):
+    - [Finding with mitigation action]
+    ```
+
+    **Risk Assessment Format**:
+    ```
+    | Risk | Likelihood | Impact | Mitigation |
+    |------|------------|--------|------------|
+    | [Risk 1] | High/Med/Low | High/Med/Low | [Action] |
+    ```
+
+    **Recommendation Format**:
+    ```
+    **Recommendation**: [One sentence]
+
+    **Rationale** (3 bullets):
+    - [Supporting point with evidence]
+
+    **Implementation** (3 steps):
+    1. [Specific action]
+    2. [Specific action]
+    3. [Specific action]
+
+    **Risk**: [One sentence caveat]
+    ```
+
+    **Comparative Analysis Format**:
+    ```
+    **Option A vs Option B**
+
+    | Criterion | Option A | Option B | Winner |
+    |-----------|----------|----------|--------|
+    | [Criterion] | [Score/Description] | [Score/Description] | A/B |
+
+    **Recommendation**: [Choose X because Y]
+    ```

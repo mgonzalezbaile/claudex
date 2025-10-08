@@ -1,0 +1,52 @@
+# <!-- Powered by BMAD™ Core -->
+template:
+  id: conversation-log-template-v1
+  name: Voiced Conversation Log
+  version: 1.0
+  output:
+    format: json
+    filename: logs/conversations/conversation-{{session_id}}.json
+    title: "Conversation Log: {{session_id}}"
+
+workflow:
+  mode: automated
+  elicitation: none
+
+sections:
+  - id: json-structure
+    title: Conversation Log JSON
+    type: structured-data
+    instruction: |
+      Generate a JSON object with the following structure:
+      - A "metadata" object containing session_id, persona_description, and start_timestamp
+      - A "conversation" array containing message exchanges with "role" and "content" fields
+      - Each user message should have role: "user"
+      - Each assistant/voiced response should have role: "assistant"
+    template: |
+      {
+        "metadata": {
+          "session_id": "{{session_id}}",
+          "persona_description": "{{persona_description}}",
+          "start_timestamp": "{{start_timestamp}}"
+        },
+        "conversation": [
+          {
+            "role": "user",
+            "content": "{{message_1_content}}"
+          },
+          {
+            "role": "assistant",
+            "content": "{{message_1_response_content}}"
+          },
+          {
+            "role": "user",
+            "content": "{{message_2_content}}"
+          },
+          {
+            "role": "assistant",
+            "content": "{{message_2_response_content}}"
+          }
+        ]
+      }
+    owner: user-voiced-agent
+    editors: [user-voiced-agent]

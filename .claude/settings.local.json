@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn jest:*)",
+      "Bash(yarn test:*)",
+      "Bash(env:*yarn jest:*)",
+      "Bash(env:*yarn test:*)",
+      "Bash(yarn check:types:*)",
+      "Bash(find:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "mcp__sequential-thinking__sequentialthinking",
+      "WebFetch",
+      "WebSearch",
+      "Bash(cat:*)",
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/libs/llm-server/src/**)",
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/libs/prompt-service/src/**)",
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/.bmad-core/templates/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

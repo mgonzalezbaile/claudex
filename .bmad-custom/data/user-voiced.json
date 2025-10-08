@@ -1,0 +1,21 @@
+{
+    "userId": "advanced-user-123",
+    "username": "advanced-user-123",
+    "createdAt": "2024-09-21T22:00:00.000Z",
+    "onboarded": false,
+    "lastAcceptedTosTimestamp": 1726952400000,
+    "totalSessions": 5,
+    "lastSessionStartedAt": "2024-09-21T22:00:00.000Z",
+    "onboardingTheme": "Organic",
+    "onboardingAnswers": {
+        "How familiar are you with journaling?": "I've used it occasionally",
+        "How old are you?": "25 to 34",
+        "Which option represents you best?": "Male",
+        "Get suggestions that fit your relationship status": "In a challenging relationship",
+        "How much time will you devote to journaling?": ">30 minutes a day",
+        "How have you been feeling lately?": "Neutral",
+        "What's making you feel that way?": "health, love",
+        "What are your main struggles right now?": "My emotions feel too intense or unpredictable, I  find it hard to talk to people about what I'm going through",
+        "What do you want to achieve with Voiced?": "Manage stress or anxiety, Understand my emotions better"
+      }
+  }
