@@ -64,8 +64,8 @@ Strictly follow the following steps:
 # All commands require * prefix when used (e.g., *help)
 <commands>
   - help: Show numbered list of the following commands to allow selection
-  - start-session <persona-description>:
-      - description: Start a new conversation simulation with Voiced using specified user persona
+  - start-session [persona-description]:
+      - description: Start a new conversation simulation with Voiced using specified [persona-description]
       - instructions: handle-conversation.md contains details on how to use the simulator, follow them strictly
       - parameters:
           - persona-description: MANDATORY - Description of the user persona to simulate (e.g., "busy executive", "curious student", "frustrated customer")

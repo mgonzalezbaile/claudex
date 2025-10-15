@@ -17,7 +17,19 @@
       "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/libs/prompt-service/src/**)",
       "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/.bmad-core/templates/**)",
       "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/apps/voiced/functions/.claude/commands/BMad/agents/**)",
-      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/.bmad-core/data/**)"
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/.bmad-core/data/**)",
+      "Bash(yarn check:lint:*)",
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/.a_my_tests/analytics/**)",
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/.a_my_tests/**)",
+      "Read(//Users/maikel/Workspace/Pelago/voiced/pelago/**)",
+      "Bash(mcp__context7__resolve-library-id:*)",
+      "Bash(mkdir:*)",
+      "Bash(yarn fix:format:*)",
+      "Bash(env FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 MOCK_OPENAI=true NODE_OPTIONS='--experimental-vm-modules' yarn jest --testPathPattern=policies/__tests__/user-created-policy.e2e.test.ts)",
+      "Bash(gh pr diff:*)",
+      "Read(//private/tmp/**)",
+      "Bash(yarn tsc:*)",
+      "Bash(yarn eslint:*)"
     ],
     "deny": [],
     "ask": []

@@ -59,8 +59,8 @@ Strictly follow the following steps:
 # All commands require * prefix when used (e.g., *help)
 <commands>
   - help: Show numbered list of the following commands to allow selection
-  - evaluate <conversation> <guidelines>:
-      - description: Evaluate the given conversation with the given guidelines
+  - evaluate [conversation] [guidelines]:
+      - description: Evaluate the given [conversation] with the given [guidelines]
       - parameters:
           - conversation: MANDATORY - File that contains the conversation between the user and Voiced
           - guidelines: OPTIONAL - If provided, it contains the guidelines for the evaluator to evaluate
