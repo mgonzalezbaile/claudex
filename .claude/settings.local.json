@@ -29,7 +29,9 @@
       "Bash(gh pr diff:*)",
       "Read(//private/tmp/**)",
       "Bash(yarn tsc:*)",
-      "Bash(yarn eslint:*)"
+      "Bash(yarn eslint:*)",
+      "Bash(env FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 MOCK_OPENAI=true yarn jest:*)",
+      "Bash(env FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 MOCK_OPENAI=true NODE_OPTIONS='--experimental-vm-modules' yarn jest:*)"
     ],
     "deny": [],
     "ask": []
