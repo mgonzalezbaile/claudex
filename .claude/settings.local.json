@@ -42,7 +42,10 @@
       "Bash(gh pr list:*)",
       "Bash(gh pr view:*)",
       "Bash(npm run build:*)",
-      "Read(//Users/maikel/Workspace/Pelago/bmad/**)"
+      "Read(//Users/maikel/Workspace/Pelago/bmad/**)",
+      "Bash(npm view:*)",
+      "Bash(node:*)",
+      "Bash(FIRESTORE_EMULATOR_HOST=localhost:8080 NODE_OPTIONS='--experimental-vm-modules' yarn jest:*)"
     ],
     "deny": [],
     "ask": []
