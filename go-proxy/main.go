@@ -111,6 +111,9 @@ func main() {
 		// For SIGINT, let the PTY handle it naturally
 	}()
 
+	// Set the PTY writer so output rules can send input to Claude
+	state.interceptor.SetPtyWriter(ptmx)
+
 	// Create error channel for goroutines
 	errCh := make(chan error, 2)
 

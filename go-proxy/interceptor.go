@@ -27,6 +27,7 @@ type Interceptor struct {
 	outputRules   []PatternRule // Rules checked continuously on output
 	inEscapeSeq   bool          // Track if we're in the middle of an ANSI escape sequence
 	lastEnterByte byte          // Store the last ENTER byte pressed (for replaying)
+	ptyWriter     io.Writer     // Writer to send input to Claude's PTY
 }
 
 // NewInterceptor creates a new interceptor
@@ -43,6 +44,21 @@ func NewInterceptor(logFile *os.File) *Interceptor {
 // GetLastEnterByte returns the last ENTER byte that was pressed
 func (i *Interceptor) GetLastEnterByte() byte {
 	return i.lastEnterByte
+}
+
+// GetLogFile returns the log file for debugging
+func (i *Interceptor) GetLogFile() *os.File {
+	return i.logFile
+}
+
+// GetPtyWriter returns the PTY writer for sending input to Claude
+func (i *Interceptor) GetPtyWriter() io.Writer {
+	return i.ptyWriter
+}
+
+// SetPtyWriter sets the PTY writer
+func (i *Interceptor) SetPtyWriter(writer io.Writer) {
+	i.ptyWriter = writer
 }
 
 // AddInputRule adds a pattern matching rule for user input (checked on ENTER)
@@ -165,9 +181,24 @@ func (i *Interceptor) HandleInput(src io.Reader, dst io.Writer) error {
 			continue
 		}
 
+		// Handle backspace/delete keys - remove from buffer
+		if b == 0x7F || b == 0x08 { // DEL (127) or Backspace (8)
+			// Remove the last character from the buffer if it exists
+			if i.inputBuffer.Len() > 0 {
+				bufBytes := i.inputBuffer.Bytes()
+				i.inputBuffer.Reset()
+				if len(bufBytes) > 0 {
+					i.inputBuffer.Write(bufBytes[:len(bufBytes)-1])
+				}
+			}
+		}
+
 		// Accumulate printable ASCII in buffer for pattern matching
 		if b >= 32 && b <= 126 {
 			i.inputBuffer.WriteByte(b)
+			if i.logFile != nil && (b == ':' || b == '/') {
+				fmt.Fprintf(i.logFile, "[CLAUDEX CHAR DEBUG] Captured special char: '%c' (byte %d)\n", b, b)
+			}
 		}
 
 		// Forward ALL keystrokes immediately for proper display/echo
