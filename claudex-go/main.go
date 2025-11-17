@@ -96,15 +96,72 @@ func main() {
 		return
 	}
 
-	// Handle "Create New Session"
+	// Handle "Create New Session" - select profile first
+	var profileContent []byte
 	if fm.choice == "new" {
-		sessionName, sessionPath, err := createNewSession(sessionsDir)
+		// First, select a profile
+		profiles, err := getProfiles(profilesDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		delegate := itemDelegate{}
+		profileItems := make([]list.Item, len(profiles))
+		for i, profile := range profiles {
+			desc := extractProfileDescription(filepath.Join(profilesDir, profile))
+			profileItems[i] = sessionItem{
+				title:       profile,
+				description: desc,
+				itemType:    "profile",
+			}
+		}
+
+		pl := list.New(profileItems, delegate, 0, 0)
+		pl.Title = "Select Profile for New Session"
+		pl.Styles.Title = titleStyle
+		pl.SetShowStatusBar(false)
+		pl.SetFilteringEnabled(true)
+		pl.SetShowHelp(true)
+
+		pm := model{
+			list:        pl,
+			stage:       "profile",
+			projectDir:  projectDir,
+			sessionsDir: sessionsDir,
+			profilesDir: profilesDir,
+		}
+
+		p2 := tea.NewProgram(pm, tea.WithAltScreen())
+		finalProfileModel, err := p2.Run()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		pm2 := finalProfileModel.(model)
+		if pm2.quitting {
+			return
+		}
+
+		profileName := pm2.choice
+		profilePath := filepath.Join(profilesDir, profileName)
+
+		profileContent, err = os.ReadFile(profilePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Now create the session with the selected profile
+		sessionName, sessionPath, claudeSessionID, err := createNewSessionParallel(sessionsDir, profileContent)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 		fm.sessionName = sessionName
 		fm.sessionPath = sessionPath
+		fm.choice = claudeSessionID // Store session ID for later use
 	}
 
 	// Check if selected session has a Claude session ID (for resume/fork choice)
@@ -167,9 +224,46 @@ func main() {
 
 	// Handle resume vs new/fork session
 	var claudeSessionID string
-	var profileContent []byte
+	var isNewSessionAlreadyInitialized bool
 
-	if resumeOrForkChoice == "resume" {
+	// Check if we just created a new session (session ID stored in fm.choice)
+	if fm.choice != "new" && fm.choice != "session" && fm.choice != "ephemeral" && len(fm.choice) > 30 {
+		// This is a Claude session ID from createNewSessionParallel
+		claudeSessionID = fm.choice
+		isNewSessionAlreadyInitialized = true
+	}
+
+	if isNewSessionAlreadyInitialized {
+		// New session already initialized in parallel, just resume it
+		// Update last used timestamp
+		if err := updateLastUsed(fm.sessionPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Could not update last used timestamp: %v\n", err)
+		}
+
+		// Give terminal a moment to settle
+		time.Sleep(100 * time.Millisecond)
+
+		// Clear screen and show launching message
+		fmt.Print("\033[H\033[2J\033[3J") // Clear screen and scrollback
+		fmt.Print("\033[0m")              // Reset all attributes
+		fmt.Printf("\n✅ Launching new Claude session\n")
+		fmt.Printf("📦 Session: %s\n", fm.sessionName)
+		fmt.Printf("🔄 Session ID: %s\n\n", claudeSessionID)
+
+		// Small delay before resuming
+		time.Sleep(300 * time.Millisecond)
+
+		// Resume the Claude session interactively with activation files
+		resumeCmd := exec.Command("claude", "--resume", claudeSessionID, "load activation files")
+		resumeCmd.Stdin = os.Stdin
+		resumeCmd.Stdout = os.Stdout
+		resumeCmd.Stderr = os.Stderr
+
+		if err := resumeCmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "\n❌ Error running Claude session: %v\n", err)
+			os.Exit(1)
+		}
+	} else if resumeOrForkChoice == "resume" {
 		// For resume, skip profile selection and directly launch Claude
 		claudeSessionID = extractClaudeSessionID(fm.sessionName)
 		if claudeSessionID == "" {
@@ -333,22 +427,57 @@ func main() {
 	}
 }
 
-func createNewSession(sessionsDir string) (string, string, error) {
+func createNewSessionParallel(sessionsDir string, profileContent []byte) (string, string, string, error) {
 	fmt.Print("\033[H\033[2J") // Clear screen
 	fmt.Println()
 	fmt.Println("\033[1;36m Create New Session \033[0m")
 	fmt.Println()
 
+	// Channel to receive Claude session ID from goroutine
+	type sessionIDResult struct {
+		sessionID string
+		err       error
+	}
+	sessionIDChan := make(chan sessionIDResult, 1)
+
+	// Start Claude session initialization in background (silently)
+	go func() {
+		initCmd := exec.Command("claude", "--system-prompt", string(profileContent), "-p", "hello", "--output-format", "json")
+		initCmd.Stderr = os.Stderr
+
+		output, err := initCmd.Output()
+		if err != nil {
+			sessionIDChan <- sessionIDResult{"", fmt.Errorf("error initializing Claude session: %w", err)}
+			return
+		}
+
+		var sessionData struct {
+			SessionID string `json:"session_id"`
+		}
+		if err := json.Unmarshal(output, &sessionData); err != nil {
+			sessionIDChan <- sessionIDResult{"", fmt.Errorf("error parsing session data: %w", err)}
+			return
+		}
+
+		if sessionData.SessionID == "" {
+			sessionIDChan <- sessionIDResult{"", fmt.Errorf("no session ID returned from Claude")}
+			return
+		}
+
+		sessionIDChan <- sessionIDResult{sessionData.SessionID, nil}
+	}()
+
+	// Meanwhile, get description from user
 	fmt.Print("  Description: ")
 	reader := bufio.NewReader(os.Stdin)
 	description, err := reader.ReadString('\n')
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	description = strings.TrimSpace(description)
 
 	if description == "" {
-		return "", "", fmt.Errorf("description cannot be empty")
+		return "", "", "", fmt.Errorf("description cannot be empty")
 	}
 
 	fmt.Println()
@@ -359,7 +488,18 @@ func createNewSession(sessionsDir string) (string, string, error) {
 		sessionName = createManualSlug(description)
 	}
 
-	// Ensure unique
+	// Wait for Claude session ID (silently)
+	result := <-sessionIDChan
+	if result.err != nil {
+		return "", "", "", result.err
+	}
+	claudeSessionID := result.sessionID
+
+	// Create final session name with Claude session ID
+	baseSessionName := sessionName
+	sessionName = fmt.Sprintf("%s-%s", baseSessionName, claudeSessionID)
+
+	// Ensure unique (in case of collision)
 	originalName := sessionName
 	counter := 1
 	sessionPath := filepath.Join(sessionsDir, sessionName)
@@ -373,24 +513,24 @@ func createNewSession(sessionsDir string) (string, string, error) {
 	}
 
 	if err := os.MkdirAll(sessionPath, 0755); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	if err := os.WriteFile(filepath.Join(sessionPath, ".description"), []byte(description), 0644); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	created := time.Now().UTC().Format(time.RFC3339)
 	if err := os.WriteFile(filepath.Join(sessionPath, ".created"), []byte(created), 0644); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	fmt.Println()
 	fmt.Println("\033[1;32m  ✓ Created: " + sessionName + "\033[0m")
 	fmt.Println()
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
-	return sessionName, sessionPath, nil
+	return sessionName, sessionPath, claudeSessionID, nil
 }
 
 func generateSessionName(description string) (string, error) {
