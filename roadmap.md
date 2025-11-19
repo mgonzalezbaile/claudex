@@ -14,80 +14,100 @@ Execute `claude` directly in the session directory to give it focused access to 
 
 ## Feature Roadmap
 
-### Context Management
-- [ ] **`/reload-context` command**: Refresh session context without losing state
-  - Clear current context (delete Transcript Path or use built-in `/clear`)
-  - Execute command.md to reload context files from session folder
-  - Restore the selected profile via post-command hook
-  - Note: Session management with `/exit` handling and resume is already functional
+### Session Management (Core)
+- [x] **Dashboard / TUI**: Terminal UI for managing the lifecycle.
+- [x] **Create New Session**:
+  - [x] Input description
+  - [x] Auto-generate session slug (via Claude)
+  - [x] Create persistent folder in `sessions/`
+- [x] **Resume Session**:
+  - [x] List existing sessions (sorted by recent use)
+  - [x] Re-attach to Claude Session ID
+- [x] **Fork Session**:
+  - [x] Clone session folder and artifacts
+  - [x] Create new independent session
+- [x] **Ephemeral Session**:
+  - [x] Run Claude without persistent storage/history
 
-- [ ] **Reload session state**: Load additional documentation added to session folder
-  - Implement as custom `/command`
-  - Useful when documentation is updated mid-session
+### Profile & Agent System
+*Philosophy: Keep system prompts minimal for maximum reliability. Logic should be split into composable blocks, and deep context should be loaded on-demand, not pre-loaded.*
+
+**IMPORTANT NOTE**: All documentation files must be created in the session's folder. All agents should look into the session's folder to gather context before exploring the codebase.
+
+- [ ] **Profile Composition Engine**:
+  - [ ] **Base Template**: Define shared building blocks (Tone, Format, Rules) common to all agents.
+  - [ ] **Role Definitions**: Distinct files for each persona (e.g., `roles/architect.md`).
+  - [ ] **Skill Mixins**: Reusable blocks for specific tech stacks (e.g., `skills/typescript.md`, `skills/python.md`).
+  - [ ] **Assembly Logic**: Update `claudex-go` to dynamically assemble (Template + Role + Skills) at startup.
+
+- [ ] **Context Injection & Documentation**:
+  - [ ] **Context Map**: Define a standard (e.g., `.claudex/context.md`) where users list key project docs (Standards, Features).
+  - [ ] **On-Demand Loading Patterns**: Instructions for agents to *search/read* specific docs only when relevant task arises (Lazy Loading).
+  - [ ] **User Overrides**: Allow users to inject custom "knowledge files" into the session scope at startup.
+
+- [ ] **Standard Agent Library (Built-in)**:
+  - [ ] **Team Lead**: Orchestrator. Focus on delegation and **Aggressive Parallelization**.
+  - [ ] **Researcher**: Current `architect-assistant`. Analyst. Focus on deep research (code/docs) and producing **Research Documents**.
+  - [ ] **Architect**: Planner. Focus on creating **Execution Plans** based on Researcher output.
+    - Review .bmad-core/templates/execution-plan-tmpl.yaml to make it more concise
+    - Create plan optimized for agents parallelization
+  - [ ] **Principal Software Engineer**: Builder. Focus on implementation. Supports **Skill Mixins** (Python, TS, etc.).
+  - [ ] **Principal AI/Prompt Engineer**: Expert in Evals, Prompting, and LLM Systems.
+  - [ ] **QA Engineer**: Validator. Focus on test coverage and quality assurance.
+  - [ ] **Context Curator** (Background): Agent responsible for automatic documentation updates via hooks.
+
+- [x] **Profile Selection**: Choose from built-in profiles at startup.
+- [x] **Profile Loading**: Inject profile content as system prompt.
+- [ ] **Dynamic Profiles ("Custom")**:
+  - [ ] Generate agent definition dynamically based on user description
+  - [ ] **Agent Templates**: Define blocks that can be filled based on user description
+- [ ] **"None" Profile**: Option to start without any system prompt.
+- [ ] **Multi-tool support**: Execute prompts with alternative AI tools (Gemini, etc.)
+
+### Context Management & Hooks (Native)
+*Leveraging Claude Code's built-in hooks functionality.*
+
+- [ ] **Native Hooks Configuration**:
+  - [ ] `PreToolUse` / `PostToolUse` hooks
+  - [ ] `SessionStart` / `SessionEnd` hooks
+- [ ] **Prompt Interception & Enhancement**:
+  - [ ] **`PreToolUse` for Task tool**: Intercept subagent spawning to modify prompts
+  - [ ] **Dynamic Context Injection**: Auto-inject relevant docs/context based on subagent_type
+  - [ ] **Prompt Templates**: Apply agent-specific prompt enhancements before execution
+  - [ ] **Validation Layer**: Enforce prompt structure/requirements before spawning
+- [ ] **Context Refresh**:
+  - [ ] **`/reload-context`**: Refresh session context without losing state.
+  - [ ] **`/exit` hook**: Summarize session upon exit.
+
+### Infrastructure & Installation
+- [x] **Installer Script**:
+  - [x] Link `.claude` configuration to target workspace
+  - [x] Setup global profiles directory
+- [ ] **Global vs Local Profiles**: Implement "Cascading Configuration" (Local overrides Global).
+- [ ] **Enable MCPs**: Configure default MCPs during installation.
+
+## Detailed Ideas
 
 ### Session Lifecycle Hooks
-- [ ] **`/exit` hook**: Capture session end
+- **`/exit` hook**: Capture session end
   - Summarize session and create resumption file
   - Run in background to avoid blocking user
-  - Enables heavy processing without UX impact
-
-- [ ] **SubagentStop hook**: Capture agent execution results
+- **SubagentStop hook**: Capture agent execution results
   - Update session context when `message.stop_reason == end_turn`
-  - **Decision needed**: Should all end_prompts update documentation, or only agent executions?
   - **Smart documentation**: Only create/update docs when truly valuable
-    - Criteria TBD: significance of changes, new information volume, relevance to session goals, etc.
-    - Avoid documentation bloat from minor changes
 
-### Session Management
-- [x] **Session and agent selection** at startup
-- [ ] **Session prompt flow**:
-  - Arrow-key navigation
-  - Option 1: Create new session (enter description → generate name → create folder)
-  - Option 2: Resume existing session
-  - Option 3: Ephemeral session (no folder, no persistence)
-
-### Agent System
-- [ ] **Generic agents**: Base agents that can be extended with custom documentation
-- [ ] **Multi-tool support**: Execute prompts with alternative AI tools (Codex, Gemini, etc.)
-  - Custom commands like `/gemini`, `/codex`
-  - Build optimized prompts via hooks
-  - Return results to Claude for integration
-
-### Hook System
-- [ ] **Implement comprehensive hooks**: All hooks receive `session_id` as input
-  - **preCompact hook**: Intercept before context compaction
-    - Update session data
-    - Abort compaction
-    - Restart agent with fresh session data
-  - **Command hooks**: Pass session path to all commands
-    - Ensures agents always reference correct context
-    - Useful for spawning subagents with full context
-    - Example prompt: "You are working on this workspace: /path/to/session"
-  - **Custom command hooks**: Integrate external tools
-    - Build prompts and execute alternative AI tools
-    - Get second opinions on complex problems
-    - Feed results back to Claude
-
-### Infrastructure
-- [ ] **Enable MCPs** during framework installation
-- [ ] **Documentation injection**: Design user-friendly method to add custom docs to sessions
-
-## Installation Requirements
-
-The installation script should:
-- Create symbolic links from `.claudex` to `.claude` folders
-- Create symbolic links from `.claudex` to `.cursor` folders
-- Create symbolic links from project path to `.claude`, `.cursor`, and other required folders
-- Copy and install the `claudex` script to `$PATH`
+### Hook System Ideas
+- **preCompact hook**: Intercept before context compaction to save state.
+- **Command hooks**: Pass session path to all commands.
+- **Custom command hooks**: Integrate external tools (Gemini, Codex).
 
 ## Directory Structure
-
 ```
 .claudex/
-├── agents/       # Agent definitions
-├── tasks/        # Task templates
-├── templates/    # Session templates
-└── sessions/     # Active and archived sessions
+├── profiles/       # Global Agent/Profile definitions
+├── context/        # (Proposed) Global context maps
+├── sessions/       # (In project) Active and archived sessions
+└── hooks/          # (Proposed) Hook scripts
 ```
 
 ## Technical Notes
@@ -101,10 +121,35 @@ session_id=$(claude --system-prompt "prompt" "activate" --output-format json | j
 claude --resume $session_id
 ```
 
+### Prompt Interception via PreToolUse Hook
+The `PreToolUse` hook for the `Task` tool receives the complete subagent invocation:
+
+```json
+{
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Task",
+  "session_id": "...",
+  "tool_input": {
+    "description": "Task description",
+    "subagent_type": "architect",
+    "prompt": "Original prompt text..."
+  }
+}
+```
+
+**Implementation possibilities**:
+- Modify `tool_input.prompt` to inject session-specific context
+- Add standard instructions based on `tool_input.subagent_type`
+- Inject relevant documentation references from session folder
+- Enforce prompt structure/templates for consistency
+- Return modified JSON to Claude Code with enhanced prompt
+
+**Use cases**:
+- Auto-inject "Read session docs first" instructions
+- Add agent-specific guidelines (e.g., "Focus on parallelization" for team-lead)
+- Append coding standards or architectural constraints
+- Include references to recent session artifacts
+
 ## Current Issues & Feedback
-
-### Issues
-- **File organization**: Claude currently generates documents anywhere; should be constrained to session folder
-
-### What's Working Well
-- ✅ Team Lead agent effectively delegates to Architect Assistant and Engineer
+- **File organization**: Claude currently generates documents anywhere; should be constrained to session folder.
+- **Context Sync**: Needs the native hooks implementation to be fully automatic.
