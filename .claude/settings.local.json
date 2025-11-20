@@ -57,7 +57,8 @@
       "Bash(npm install)",
       "Bash(npm test:*)",
       "Bash(npm run check:types:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(bq query:*)"
     ],
     "deny": [],
     "ask": []

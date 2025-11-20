@@ -178,7 +178,8 @@ func main() {
 		delegate := itemDelegate{}
 		profileItems := make([]list.Item, len(profiles))
 		for i, profile := range profiles {
-			desc := extractProfileDescription(filepath.Join(profilesDir, profile))
+			fullPath := resolveProfilePath(profilesDir, profile)
+			desc := extractProfileDescription(fullPath)
 			profileItems[i] = sessionItem{
 				title:       profile,
 				description: desc,
@@ -214,9 +215,9 @@ func main() {
 		}
 
 		profileName := pm2.choice
-		profilePath := filepath.Join(profilesDir, profileName)
+		// profilePath := filepath.Join(profilesDir, profileName) // No longer used directly
 
-		profileContent, err = os.ReadFile(profilePath)
+		profileContent, err = loadProfile(profilesDir, profileName)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -230,7 +231,7 @@ func main() {
 		}
 		fm.sessionName = sessionName
 		fm.sessionPath = sessionPath
-		fm.choice = claudeSessionID              // Store session ID for later use
+		fm.choice = claudeSessionID               // Store session ID for later use
 		newSessionProfileContent = profileContent // Store profile content for launching
 	}
 
@@ -386,7 +387,8 @@ func main() {
 
 		profileItems := make([]list.Item, len(profiles))
 		for i, profile := range profiles {
-			desc := extractProfileDescription(filepath.Join(profilesDir, profile))
+			fullPath := resolveProfilePath(profilesDir, profile)
+			desc := extractProfileDescription(fullPath)
 			profileItems[i] = sessionItem{
 				title:       profile,
 				description: desc,
@@ -425,9 +427,9 @@ func main() {
 
 		// Now launch Claude - terminal is properly restored
 		profileName := pm2.choice
-		profilePath := filepath.Join(profilesDir, profileName)
+		// profilePath := filepath.Join(profilesDir, profileName) // Not used
 
-		profileContent, err = os.ReadFile(profilePath)
+		profileContent, err = loadProfile(profilesDir, profileName)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -466,7 +468,7 @@ func main() {
 			SessionID string `json:"session_id"`
 		}
 		if err := json.Unmarshal(output, &sessionData); err != nil {
-			fmt.Fprintf(os.Stderr, "\n❌ Error parsing session data: %v\n", err)
+			fmt.Fprintf(os.Stderr, "\n❌ Error parsing session data: %v\nOutput: %s\n", err, string(output))
 			os.Exit(1)
 		}
 
@@ -675,15 +677,34 @@ func getSessions(sessionsDir string) ([]sessionItem, error) {
 }
 
 func getProfiles(profilesDir string) ([]string, error) {
+	var profiles []string
+	seen := make(map[string]bool)
+
+	// 1. Legacy profiles (root)
 	entries, err := os.ReadDir(profilesDir)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		for _, entry := range entries {
+			name := entry.Name()
+			if !entry.IsDir() && !strings.HasPrefix(name, "common.md") && !strings.HasPrefix(name, "_") && !strings.HasPrefix(name, ".") {
+				profiles = append(profiles, name)
+				seen[name] = true
+			}
+		}
 	}
 
-	var profiles []string
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			profiles = append(profiles, entry.Name())
+	// 2. Roles (roles/)
+	rolesDir := filepath.Join(profilesDir, "roles")
+	roleEntries, err := os.ReadDir(rolesDir)
+	if err == nil {
+		for _, entry := range roleEntries {
+			name := entry.Name()
+			if !entry.IsDir() && !strings.HasPrefix(name, ".") {
+				// Avoid duplicates if same name exists in both (legacy takes precedence? or we just list unique)
+				if !seen[name] {
+					profiles = append(profiles, name)
+					seen[name] = true
+				}
+			}
 		}
 	}
 
@@ -844,6 +865,118 @@ func renameSessionWithClaudeID(oldPath, sessionName, claudeSessionID string) (st
 	}
 
 	return newPath, nil
+}
+
+func loadProfile(profilesDir, profileName string) ([]byte, error) {
+	// 1. Try legacy path directly in profilesDir
+	legacyPath := filepath.Join(profilesDir, profileName)
+	if _, err := os.Stat(legacyPath); err == nil {
+		return os.ReadFile(legacyPath)
+	}
+
+	// 2. Try roles path
+	rolePath := filepath.Join(profilesDir, "roles", profileName)
+	if _, err := os.Stat(rolePath); err == nil {
+		// Found a role! Load common + role
+		commonPath := filepath.Join(profilesDir, "common.md")
+		commonContent, err := os.ReadFile(commonPath)
+		if err != nil {
+			// It's okay if common doesn't exist, just warn or skip
+			// But for now let's assume it exists if we are using roles
+			// fmt.Fprintf(os.Stderr, "Warning: common.md not found: %v\n", err)
+		}
+
+		roleContent, err := os.ReadFile(rolePath)
+		if err != nil {
+			return nil, err
+		}
+
+		// Combine: Common first, then Role
+		// We use a separator to ensure clean markdown rendering
+		var combined []byte
+		if len(commonContent) > 0 {
+			combined = append(combined, commonContent...)
+			combined = append(combined, []byte("\n\n---\n\n")...)
+		}
+
+		// Parse frontmatter from roleContent to find skills
+		skills, cleanRoleContent := parseSkillsFromFrontmatter(roleContent)
+		combined = append(combined, cleanRoleContent...)
+
+		// Load Skills
+		if len(skills) > 0 {
+			combined = append(combined, []byte("\n\n# Skills\n")...)
+			for _, skill := range skills {
+				skillPath := filepath.Join(profilesDir, "skills", skill+".md")
+				if skillContent, err := os.ReadFile(skillPath); err == nil {
+					combined = append(combined, []byte(fmt.Sprintf("\n## %s\n\n", skill))...)
+					combined = append(combined, skillContent...)
+				} else {
+					// Warn but continue
+					fmt.Fprintf(os.Stderr, "Warning: skill not found: %s\n", skill)
+				}
+			}
+		}
+
+		return combined, nil
+	}
+
+	return nil, fmt.Errorf("profile not found: %s", profileName)
+}
+
+func parseSkillsFromFrontmatter(content []byte) ([]string, []byte) {
+	str := string(content)
+	if !strings.HasPrefix(str, "---") {
+		return nil, content
+	}
+
+	// Find end of frontmatter
+	end := strings.Index(str[3:], "---")
+	if end == -1 {
+		return nil, content
+	}
+	end += 3 // Adjust for the first --- skipping
+
+	frontmatter := str[3:end]
+	body := str[end+3:] // Skip the closing ---
+
+	var skills []string
+	lines := strings.Split(frontmatter, "\n")
+	inSkills := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "skills:" {
+			inSkills = true
+			continue
+		}
+		if inSkills {
+			if strings.HasPrefix(trimmed, "- ") {
+				skill := strings.TrimSpace(strings.TrimPrefix(trimmed, "- "))
+				skills = append(skills, skill)
+			} else if trimmed != "" && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+				// Dedent/New key -> exit skills block
+				inSkills = false
+			}
+		}
+	}
+
+	return skills, []byte(strings.TrimSpace(body))
+}
+
+func resolveProfilePath(profilesDir, profileName string) string {
+	// Helper to find the file containing the description (main role file)
+	legacyPath := filepath.Join(profilesDir, profileName)
+	if _, err := os.Stat(legacyPath); err == nil {
+		return legacyPath
+	}
+
+	rolePath := filepath.Join(profilesDir, "roles", profileName)
+	if _, err := os.Stat(rolePath); err == nil {
+		return rolePath
+	}
+
+	return ""
 }
 
 func updateLastUsed(sessionPath string) error {

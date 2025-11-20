@@ -3,7 +3,8 @@
 ## Task Status
 
 ### 🚀 In Progress
-- **Automatic Documentation Updates via PostToolUse Hook**: Implement background process triggered after every tool execution that captures output to keep session documentation current and synchronized with progress
+- [ ] **Dynamic Profiles ("Custom")**:
+  - [ ] Generate agent definition dynamically based on user description
 
 ### 📋 ToDo
 - **Profile Composition Engine**:
@@ -29,6 +30,7 @@ Execute `claude` directly in the session directory to give it focused access to 
 - [x] **Dashboard / TUI**: Terminal UI for managing the lifecycle.
 - [x] **Refine Team Lead Agent Context Passing**: Ensure Team Lead agent always passes complete context to delegated agents.
 - [x] **Enforce Session-Scoped Documentation**: Update all profiles and agents to ensure documentation output is always created within the session's folder.
+- [x] **Automatic Documentation Updates**: Implemented via `SubagentStop` hook to capture agent execution summaries in `session-history.md`.
 - [x] **Create New Session**:
   - [x] Input description
   - [x] Auto-generate session slug (via Claude)
@@ -48,11 +50,11 @@ Execute `claude` directly in the session directory to give it focused access to 
 
 **IMPORTANT NOTE**: All documentation files must be created in the session's folder. All agents should look into the session's folder to gather context before exploring the codebase.
 
-- [ ] **Profile Composition Engine**:
-  - [ ] **Base Template**: Define shared building blocks (Tone, Format, Rules) common to all agents.
-  - [ ] **Role Definitions**: Distinct files for each persona (e.g., `roles/architect.md`).
-  - [ ] **Skill Mixins**: Reusable blocks for specific tech stacks (e.g., `skills/typescript.md`, `skills/python.md`).
-  - [ ] **Assembly Logic**: Update `claudex-go` to dynamically assemble (Template + Role + Skills) at startup.
+- [x] **Profile Composition Engine**:
+  - [x] **Base Template**: Define shared building blocks (Tone, Format, Rules) common to all agents.
+  - [x] **Role Definitions**: Distinct files for each persona (e.g., `roles/architect.md`).
+  - [x] **Skill Mixins**: Reusable blocks for specific tech stacks (e.g., `skills/typescript.md`, `skills/python.md`).
+  - [x] **Assembly Logic**: Update `claudex-go` to dynamically assemble (Template + Role + Skills) at startup.
 
 - [ ] **Context Injection & Documentation**:
   - [ ] **Context Map**: Define a standard (e.g., `.claudex/context.md`) where users list key project docs (Standards, Features).
