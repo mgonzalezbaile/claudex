@@ -112,7 +112,7 @@ Create a comprehensive execution plan document using final decisions from Phase 
 2. **Create Each Section** - Use final decisions (no alternatives or rationale in document)
 3. **Use Context7 MCP** - Query library docs when writing implementation details
 4. **Use Sequential-Thinking MCP** - For complex implementation logic
-5. **Save Plan** - Write to markdown file in project docs
+5. **Save Plan** - Write to markdown file in session folder
 
 ### Document Sections
 
