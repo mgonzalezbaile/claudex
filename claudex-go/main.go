@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -58,7 +59,7 @@ func buildSystemPromptWithSessionContext(profileContent []byte, sessionPath stri
 		filesDisplay = strings.TrimSuffix(filesDisplay, "\n")
 	}
 
-	// Build session context template (from inject-session-context.sh lines 108-136)
+	// Build session context template (from pre-tool-use.sh hook)
 	sessionContext := fmt.Sprintf(`## SESSION CONTEXT (CRITICAL)
 
 You are working within an active Claudex session. ALL documentation, plans, and artifacts MUST be created in the session folder.
@@ -95,6 +96,34 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Setup centralized logging
+	logsDir := filepath.Join(projectDir, "logs")
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Could not create logs directory: %v\n", err)
+	}
+
+	// Create unique log file for this execution
+	timestamp := time.Now().Format("20060102-150405")
+	logFileName := fmt.Sprintf("claudex-%s.log", timestamp)
+	logFilePath := filepath.Join(logsDir, logFileName)
+
+	// Open log file
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Could not open log file: %v\n", err)
+	} else {
+		defer logFile.Close()
+		// Configure Go logger with [claudex] prefix
+		log.SetOutput(logFile)
+		log.SetPrefix("[claudex] ")
+		log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
+		
+		// Set environment variable for hooks
+		os.Setenv("CLAUDEX_LOG_FILE", logFilePath)
+		
+		log.Printf("Claudex started (log file: %s)", logFileName)
 	}
 
 	sessionsDir := filepath.Join(projectDir, "sessions")

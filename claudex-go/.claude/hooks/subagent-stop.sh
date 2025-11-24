@@ -6,16 +6,25 @@
 # Determine Project Root (assuming script is in .claude/hooks/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-LOG_FILE="$PROJECT_ROOT/.claude/hooks/subagent-stop.log"
 
-# Logging function
+# Use CLAUDEX_LOG_FILE if set, otherwise fallback to local file
+if [ -z "${CLAUDEX_LOG_FILE:-}" ]; then
+    LOG_FILE="$PROJECT_ROOT/.claude/hooks/subagent-stop.log"
+else
+    LOG_FILE="$CLAUDEX_LOG_FILE"
+    # Create parent directory if it doesn't exist
+    LOG_DIR=$(dirname "$LOG_FILE")
+    mkdir -p "$LOG_DIR" 2>/dev/null || true
+fi
+
+# Logging function with source prefix
 log_message() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "$timestamp | $1" >> "$LOG_FILE"
+    echo "$timestamp | [hook_subagent_stop] $1" >> "$LOG_FILE"
 }
 
 echo "===========================================================" >> "$LOG_FILE"
-log_message "Hook triggered"
+log_message "Hook triggered (SubagentStop)"
 
 # Recursion Guard: Prevent hook from triggering itself
 if [ "$CLAUDE_HOOK_INTERNAL" == "1" ]; then
@@ -31,8 +40,8 @@ SESSION_ID=$(echo "$INPUT_JSON" | jq -r '.session_id // ""')
 TRANSCRIPT_PATH=$(echo "$INPUT_JSON" | jq -r '.agent_transcript_path // ""')
 AGENT_ID=$(echo "$INPUT_JSON" | jq -r '.agent_id // ""')
 
+log_message "✅ AGENT FINISHED - Agent ID: $AGENT_ID"
 log_message "Session ID: $SESSION_ID"
-log_message "Agent ID: $AGENT_ID"
 log_message "Transcript: $TRANSCRIPT_PATH"
 log_message "CLAUDEX_SESSION_PATH: $CLAUDEX_SESSION_PATH"
 

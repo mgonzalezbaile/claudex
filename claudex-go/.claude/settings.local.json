@@ -25,6 +25,26 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/pre-tool-use.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-tool-use.sh"
+          }
+        ]
+      }
     ]
   }
 }
