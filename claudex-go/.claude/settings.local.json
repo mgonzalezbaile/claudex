@@ -28,6 +28,7 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "^(?!AskUserQuestion$).*",
         "hooks": [
           {
             "type": "command",
