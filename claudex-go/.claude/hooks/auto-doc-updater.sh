@@ -215,7 +215,7 @@ GOAL: A concise, high-level overview (<500 lines) that acts as an index to the d
     export CLAUDE_HOOK_INTERNAL=1
     
     # We capture output but primarily rely on Claude using tools to write files
-    OUTPUT=$(claude -p "$PROMPT" 2>&1)
+    OUTPUT=$(claude -p "$PROMPT" --model haiku 2>&1)
     EXIT_CODE=$?
     
     log_message "Claude finished with exit code $EXIT_CODE"
