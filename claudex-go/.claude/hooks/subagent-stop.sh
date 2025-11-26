@@ -45,6 +45,24 @@ log_message "Session ID: $SESSION_ID"
 log_message "Transcript: $TRANSCRIPT_PATH"
 log_message "CLAUDEX_SESSION_PATH: $CLAUDEX_SESSION_PATH"
 
+# === NOTIFICATION SYSTEM ===
+# Source notification library
+NOTIFICATION_LIB="$(dirname "$0")/lib/notification.sh"
+if [ -f "$NOTIFICATION_LIB" ]; then
+    source "$NOTIFICATION_LIB"
+
+    # Extract session name from path
+    SESSION_NAME=$(basename "$CLAUDEX_SESSION_PATH" 2>/dev/null || echo "unknown")
+
+    # Send notification
+    notify_agent_complete "$AGENT_ID" "$SESSION_NAME"
+
+    log_message "📢 Notification sent for agent: $AGENT_ID"
+else
+    log_message "⚠️  Notification library not found: $NOTIFICATION_LIB"
+fi
+# === END NOTIFICATION SYSTEM ===
+
 if [ -z "$SESSION_ID" ] || [ -z "$TRANSCRIPT_PATH" ]; then
     log_message "Missing session_id or transcript_path. Exiting."
     exit 0
@@ -82,6 +100,24 @@ HISTORY_FILE="$SESSION_FOLDER/session-history.md"
 
 log_message "Session Folder: $SESSION_FOLDER"
 log_message "History File: $HISTORY_FILE"
+
+# === NOTIFICATION SYSTEM ===
+# Source notification library
+NOTIFICATION_LIB="$(dirname "$0")/lib/notification.sh"
+if [ -f "$NOTIFICATION_LIB" ]; then
+    source "$NOTIFICATION_LIB"
+
+    # Extract session name from path
+    SESSION_NAME=$(basename "$SESSION_FOLDER" 2>/dev/null || echo "unknown")
+
+    # Send notification
+    notify_agent_complete "$AGENT_ID" "$SESSION_NAME"
+
+    log_message "📢 Notification sent for agent: $AGENT_ID"
+else
+    log_message "⚠️  Notification library not found: $NOTIFICATION_LIB"
+fi
+# === END NOTIFICATION SYSTEM ===
 
 if [ ! -f "$TRANSCRIPT_PATH" ]; then
     log_message "Transcript file not found: $TRANSCRIPT_PATH"
