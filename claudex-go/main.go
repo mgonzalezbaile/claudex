@@ -258,6 +258,7 @@ func main() {
 
 	// Check if selected session has a Claude session ID (for resume/fork choice)
 	var resumeOrForkChoice string
+	var isFreshMemory bool // Track if "fresh memory" was chosen
 	if fm.choice == "session" && hasClaudeSessionID(fm.sessionName) {
 		// Show resume/fork menu
 		resumeOrForkItems := []list.Item{
@@ -296,9 +297,89 @@ func main() {
 
 		resumeOrForkChoice = rfm.choice
 
-		// Handle fork choice
-		if resumeOrForkChoice == "fork" {
-			newSessionName, newSessionPath, newClaudeSessionID, err := forkSession(sessionsDir, fm.sessionName)
+		// Add variable to track resume submenu choice
+		var resumeSubmenuChoice string
+
+		// If user chose "Resume Session", show submenu: Continue vs Fresh Memory
+		if resumeOrForkChoice == "resume" {
+			// Show resume submenu: Continue with context vs Fresh memory
+			resumeSubmenuItems := []list.Item{
+				sessionItem{title: "Continue with context", description: "Resume with full conversation history", itemType: "continue"},
+				sessionItem{title: "Fresh memory", description: "Start fresh, keep files, delete original", itemType: "fresh"},
+			}
+
+			delegate := itemDelegate{}
+			rsMenu := list.New(resumeSubmenuItems, delegate, 0, 0)
+			rsMenu.Title = fmt.Sprintf("Resume Options • Session: %s", fm.sessionName)
+			rsMenu.Styles.Title = titleStyle
+			rsMenu.SetShowStatusBar(false)
+			rsMenu.SetFilteringEnabled(false)
+			rsMenu.SetShowHelp(true)
+
+			rsModel := model{
+				list:        rsMenu,
+				stage:       "resume_submenu",
+				sessionName: fm.sessionName,
+				sessionPath: fm.sessionPath,
+				projectDir:  projectDir,
+				sessionsDir: sessionsDir,
+			}
+
+			rsProgram := tea.NewProgram(rsModel, tea.WithAltScreen())
+			finalRsModel, err := rsProgram.Run()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+
+			rsm := finalRsModel.(model)
+			if rsm.quitting {
+				return
+			}
+
+			resumeSubmenuChoice = rsm.choice
+
+			// Handle "Fresh Memory" choice
+			if resumeSubmenuChoice == "fresh" {
+				newSessionName, newSessionPath, newClaudeSessionID, err := freshMemorySession(sessionsDir, fm.sessionName)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error creating fresh session: %v\n", err)
+					os.Exit(1)
+				}
+				fmt.Printf("\n🔄 Fresh memory: %s → %s (original deleted)\n", fm.sessionName, newSessionName)
+				fm.sessionName = newSessionName
+				fm.sessionPath = newSessionPath
+				fm.choice = newClaudeSessionID
+				isFreshMemory = true        // Track that this is a fresh memory session
+				resumeOrForkChoice = "fork" // Reuse fork launch path (--session-id)
+			}
+			// else: resumeSubmenuChoice == "continue" -> proceed with existing resume logic
+		}
+
+		// Handle fork choice (but not for fresh memory - already processed above)
+		if resumeOrForkChoice == "fork" && !isFreshMemory {
+			// Prompt for new description (similar to createNewSessionParallel)
+			fmt.Print("\033[H\033[2J") // Clear screen
+			fmt.Println()
+			fmt.Println("\033[1;36m Fork Session \033[0m")
+			fmt.Printf("  Original: %s\n", fm.sessionName)
+			fmt.Println()
+
+			fmt.Print("  Description for fork: ")
+			reader := bufio.NewReader(os.Stdin)
+			forkDescription, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading description: %v\n", err)
+				os.Exit(1)
+			}
+			forkDescription = strings.TrimSpace(forkDescription)
+
+			if forkDescription == "" {
+				fmt.Fprintf(os.Stderr, "Error: description cannot be empty\n")
+				os.Exit(1)
+			}
+
+			newSessionName, newSessionPath, newClaudeSessionID, err := forkSessionWithDescription(sessionsDir, fm.sessionName, forkDescription)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error forking session: %v\n", err)
 				os.Exit(1)
@@ -386,7 +467,9 @@ func main() {
 		fmt.Print("\033[H\033[2J\033[3J") // Clear screen and scrollback
 		fmt.Print("\033[0m")              // Reset all attributes
 
-		if resumeOrForkChoice == "fork" {
+		if isFreshMemory {
+			fmt.Printf("\n🔄 Launching fresh memory session\n")
+		} else if resumeOrForkChoice == "fork" {
 			fmt.Printf("\n✅ Launching forked session\n")
 		} else {
 			fmt.Printf("\n✅ Resuming Claude session\n")
@@ -811,6 +894,61 @@ func forkSession(sessionsDir, originalSessionName string) (string, string, strin
 	originalSessionPath := filepath.Join(sessionsDir, originalSessionName)
 	if err := copyDir(originalSessionPath, newSessionPath); err != nil {
 		return "", "", "", fmt.Errorf("failed to copy session directory: %w", err)
+	}
+
+	return newSessionName, newSessionPath, claudeSessionID, nil
+}
+
+func freshMemorySession(sessionsDir, originalSessionName string) (string, string, string, error) {
+	// Generate new UUID for the fresh session
+	claudeSessionID := uuid.New().String()
+
+	// Strip the Claude session ID to get the base session name
+	baseSessionName := stripClaudeSessionID(originalSessionName)
+
+	// Create session name with new Claude session ID (keep base slug)
+	newSessionName := fmt.Sprintf("%s-%s", baseSessionName, claudeSessionID)
+	newSessionPath := filepath.Join(sessionsDir, newSessionName)
+
+	// Copy original session directory to new location
+	originalSessionPath := filepath.Join(sessionsDir, originalSessionName)
+	if err := copyDir(originalSessionPath, newSessionPath); err != nil {
+		return "", "", "", fmt.Errorf("failed to copy session directory: %w", err)
+	}
+
+	// DELETE the original folder (key difference from fork)
+	if err := os.RemoveAll(originalSessionPath); err != nil {
+		return "", "", "", fmt.Errorf("failed to delete original session: %w", err)
+	}
+
+	return newSessionName, newSessionPath, claudeSessionID, nil
+}
+
+func forkSessionWithDescription(sessionsDir, originalSessionName, description string) (string, string, string, error) {
+	// Generate new UUID for the forked session
+	claudeSessionID := uuid.New().String()
+
+	// Generate new session name from description (like new session creation)
+	baseSessionName, err := generateSessionName(description)
+	if err != nil {
+		// Fallback to manual slug if Claude API fails
+		baseSessionName = createManualSlug(description)
+	}
+
+	// Create session name with new Claude session ID
+	newSessionName := fmt.Sprintf("%s-%s", baseSessionName, claudeSessionID)
+	newSessionPath := filepath.Join(sessionsDir, newSessionName)
+
+	// Copy original session directory to new location
+	originalSessionPath := filepath.Join(sessionsDir, originalSessionName)
+	if err := copyDir(originalSessionPath, newSessionPath); err != nil {
+		return "", "", "", fmt.Errorf("failed to copy session directory: %w", err)
+	}
+
+	// Update .description file with new description
+	descPath := filepath.Join(newSessionPath, ".description")
+	if err := os.WriteFile(descPath, []byte(description), 0644); err != nil {
+		return "", "", "", fmt.Errorf("failed to write description: %w", err)
 	}
 
 	return newSessionName, newSessionPath, claudeSessionID, nil

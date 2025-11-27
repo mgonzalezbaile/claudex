@@ -79,6 +79,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.choice = msg.choice
 		return m, tea.Quit
 
+	case resumeSubmenuChoiceMsg:
+		m.choice = msg.choice
+		return m, tea.Quit
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -95,6 +99,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, m.handleProfileChoice(i)
 				} else if m.stage == "resume_or_fork" {
 					return m, m.handleResumeOrForkChoice(i)
+				} else if m.stage == "resume_submenu" {
+					return m, m.handleResumeSubmenuChoice(i)
 				}
 			}
 			return m, nil
@@ -153,9 +159,19 @@ type resumeOrForkChoiceMsg struct {
 	choice string // "resume" or "fork"
 }
 
+type resumeSubmenuChoiceMsg struct {
+	choice string // "continue" or "fresh"
+}
+
 func (m model) handleResumeOrForkChoice(item sessionItem) tea.Cmd {
 	return func() tea.Msg {
 		return resumeOrForkChoiceMsg{choice: item.itemType}
+	}
+}
+
+func (m model) handleResumeSubmenuChoice(item sessionItem) tea.Cmd {
+	return func() tea.Msg {
+		return resumeSubmenuChoiceMsg{choice: item.itemType}
 	}
 }
 
@@ -189,6 +205,10 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		icon = "📁"
 	case "profile":
 		icon = "🎭"
+	case "continue":
+		icon = "▶"
+	case "fresh":
+		icon = "🔄"
 	}
 
 	str := fmt.Sprintf("%s %s", icon, i.title)
