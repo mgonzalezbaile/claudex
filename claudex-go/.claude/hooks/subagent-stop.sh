@@ -136,83 +136,9 @@ EXISTING_HISTORY=$(tail -n 200 "$HISTORY_FILE")
 # Read transcript (last 500 lines to capture recent activity)
 TRANSCRIPT_CONTENT=$(tail -n 500 "$TRANSCRIPT_PATH")
 
-# Start background processing to unblock parent process
-(
-    log_message "Background process started"
-    # ---------------------------------------------------------
-    # Update other documentation files in the session folder
-    # ---------------------------------------------------------
-log_message "Checking for other documentation files to update..."
-
-# Find all .md files in session folder, excluding session-history.md
-# We use a while loop to process each file found
-find "$SESSION_FOLDER" -maxdepth 1 -name "*.md" | while read -r DOC_FILE; do
-    BASENAME=$(basename "$DOC_FILE")
-    
-    # Skip session-history.md as it is handled separately
-    if [ "$BASENAME" == "session-history.md" ]; then
-        continue
-    fi
-
-    log_message "Found documentation: $BASENAME"
-    
-    # Read document content
-    DOC_CONTENT=$(cat "$DOC_FILE")
-    
-    # Skip empty files or files that are too large (arbitrary limit ~100KB to be safe with context window)
-    DOC_SIZE=$(wc -c < "$DOC_FILE")
-    if [ "$DOC_SIZE" -gt 100000 ]; then
-        log_message "Skipping $BASENAME (too large: $DOC_SIZE bytes)"
-        continue
-    fi
-
-    # Construct Prompt for updating documentation
-    DOC_PROMPT="You are an AI assistant maintaining documentation for a coding session.
-A subagent has just completed a task.
-Here is the transcript of the subagent's execution:
----
-$TRANSCRIPT_CONTENT
----
-
-Here is the current content of the document '$BASENAME':
----
-$DOC_CONTENT
----
-
-Instructions:
-1. Update the document '$BASENAME' to reflect the changes and progress made by the subagent.
-2. IMPORTANT: Do not remove existing information unless it is clearly obsolete or incorrect.
-3. If the new information is distinct (e.g., a new feature, topic, or research result), APPEND it to the document or create a new section.
-4. If the new information updates existing content, MERGE it intelligently.
-5. Maintain the existing format and style of the document.
-6. If the document tracks status (e.g., roadmap, todo list), mark items as complete or in progress.
-7. Output ONLY the full updated content of the document. Do not include any conversational text or markdown code fences around the whole output unless they are part of the document itself."
-
-    log_message "Updating $BASENAME with Claude..."
-    
-    # Call Claude to get updated content
-    # Using -p as per user preference for prompt
-    # Set CLAUDE_HOOK_INTERNAL=1 to prevent recursion
-    UPDATED_CONTENT=$(CLAUDE_HOOK_INTERNAL=1 claude -p "$DOC_PROMPT")
-    
-    if [ $? -eq 0 ] && [ ! -z "$UPDATED_CONTENT" ]; then
-        # Overwrite the file with new content
-        echo "$UPDATED_CONTENT" > "$DOC_FILE"
-        log_message "Successfully updated $BASENAME"
-    else
-        log_message "Failed to update $BASENAME (Claude call failed or empty output)"
-    fi
-done
-
-# ---------------------------------------------------------
-# Update Session History (REMOVED)
-# ---------------------------------------------------------
-# The session history update logic has been removed as requested.
-# This file is now handled by the auto-doc-updater hook (session-overview.md) or other mechanisms.
-
-) >/dev/null 2>&1 &
-# Disown to ensure it keeps running after script exits
-disown
+# Note: Background processing block removed - the destructive loop that updated
+# arbitrary .md files has been eliminated. Session-overview.md is handled by
+# the dedicated logic below.
 
 # ---------------------------------------------------------
 # Update Session Overview Documentation on Agent Stop
