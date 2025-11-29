@@ -20,22 +20,47 @@ info() { echo -e "${BLUE}ℹ${NC} $1"; }
 # PROJECT DETECTION AND DYNAMIC AGENT ASSEMBLY
 # ============================================================
 
-# Detect project technology stack based on marker files
+# Detect project technology stack based on marker files (scans subdirectories)
 detect_project_stack() {
     local target_dir="$1"
-    local detected_stacks=""
+    local has_typescript=false
+    local has_javascript=false
+    local has_go=false
+    local has_python=false
 
-    # TypeScript detection (package.json + tsconfig.json or typescript dependency)
-    if [ -f "$target_dir/package.json" ]; then
-        if [ -f "$target_dir/tsconfig.json" ] || grep -q '"typescript"' "$target_dir/package.json" 2>/dev/null; then
-            detected_stacks="typescript"
-        else
-            detected_stacks="javascript"
+    # TypeScript detection (tsconfig.json or package.json with typescript)
+    if find "$target_dir" -maxdepth 3 -name "tsconfig.json" -print -quit 2>/dev/null | grep -q .; then
+        has_typescript=true
+    elif find "$target_dir" -maxdepth 3 -name "package.json" -print 2>/dev/null | head -5 | xargs grep -l '"typescript"' 2>/dev/null | grep -q .; then
+        has_typescript=true
+    fi
+
+    # JavaScript detection (package.json without typescript)
+    if [ "$has_typescript" = false ]; then
+        if find "$target_dir" -maxdepth 3 -name "package.json" -print -quit 2>/dev/null | grep -q .; then
+            has_javascript=true
         fi
     fi
 
     # Go detection
-    if [ -f "$target_dir/go.mod" ]; then
+    if find "$target_dir" -maxdepth 3 -name "go.mod" -print -quit 2>/dev/null | grep -q .; then
+        has_go=true
+    fi
+
+    # Python detection
+    if find "$target_dir" -maxdepth 3 \( -name "requirements.txt" -o -name "pyproject.toml" -o -name "setup.py" -o -name "Pipfile" \) -print -quit 2>/dev/null | grep -q .; then
+        has_python=true
+    fi
+
+    # Build comma-separated list of detected stacks
+    local detected_stacks=""
+    if [ "$has_typescript" = true ]; then
+        detected_stacks="typescript"
+    elif [ "$has_javascript" = true ]; then
+        detected_stacks="javascript"
+    fi
+
+    if [ "$has_go" = true ]; then
         if [ -n "$detected_stacks" ]; then
             detected_stacks="$detected_stacks,go"
         else
@@ -43,8 +68,7 @@ detect_project_stack() {
         fi
     fi
 
-    # Python detection
-    if [ -f "$target_dir/requirements.txt" ] || [ -f "$target_dir/pyproject.toml" ] || [ -f "$target_dir/setup.py" ] || [ -f "$target_dir/Pipfile" ]; then
+    if [ "$has_python" = true ]; then
         if [ -n "$detected_stacks" ]; then
             detected_stacks="$detected_stacks,python"
         else
@@ -60,7 +84,7 @@ analyze_project_with_claude() {
     local target_dir="$1"
     local detected_stacks="$2"
 
-    info "Analyzing project structure with Claude..."
+    info "Analyzing project structure with Claude..." >&2
 
     # List key source files for analysis (limit to first 30)
     local file_list
@@ -89,16 +113,16 @@ What is the PRIMARY technology stack for this project? Reply with ONLY one word:
 
 # Prompt user to select stack for empty/unknown projects
 prompt_user_for_stack() {
-    echo ""
-    warning "Could not detect project technology stack."
-    echo ""
-    echo "Please select the primary technology for this project:"
-    echo "  [1] TypeScript"
-    echo "  [2] Python"
-    echo "  [3] Go"
-    echo "  [4] JavaScript"
-    echo "  [5] All (install all engineer variants)"
-    echo ""
+    echo "" >&2
+    warning "Could not detect project technology stack." >&2
+    echo "" >&2
+    echo "Please select the primary technology for this project:" >&2
+    echo "  [1] TypeScript" >&2
+    echo "  [2] Python" >&2
+    echo "  [3] Go" >&2
+    echo "  [4] JavaScript" >&2
+    echo "  [5] All (install all engineer variants)" >&2
+    echo "" >&2
 
     while true; do
         read -p "Your choice (1-5): " choice
@@ -108,7 +132,7 @@ prompt_user_for_stack() {
             3) echo "go"; return ;;
             4) echo "javascript"; return ;;
             5) echo "all"; return ;;
-            *) error "Invalid choice. Please enter 1-5." ;;
+            *) error "Invalid choice. Please enter 1-5." >&2 ;;
         esac
     done
 }
@@ -149,15 +173,13 @@ color: blue
 
 EOF
 
-    # Append role content (which already has {Stack} placeholders)
-    # Replace {Stack} with the actual stack display name
-    sed "s/{Stack}/${stack_display}/g" "$role_file" >> "$output_file"
+    # Append role content, replace {Stack} placeholder, and strip HTML comments
+    sed "s/{Stack}/${stack_display}/g" "$role_file" | sed '/<!--/,/-->/d' >> "$output_file"
 
-    # Append skill content if it exists
+    # Append skill content if it exists (strip HTML comments)
     if [ -f "$skill_file" ]; then
         echo "" >> "$output_file"
-        echo "<!-- Skill: ${stack} -->" >> "$output_file"
-        cat "$skill_file" >> "$output_file"
+        sed '/<!--/,/-->/d' "$skill_file" >> "$output_file"
         info "  Assembled agent with skill: ${stack}"
     else
         warning "  Skill file not found: $skill_file (agent created without skill)"
@@ -423,19 +445,28 @@ success "Agent profile symbolic links created in .claude"
 info "Detecting project technology stack..."
 
 DETECTED_STACKS=$(detect_project_stack "$TARGET_DIR")
+STACKS_TO_INSTALL=""
 PRIMARY_STACK=""
 
 if [ -z "$DETECTED_STACKS" ]; then
     # Empty project - prompt user for stack selection
     PRIMARY_STACK=$(prompt_user_for_stack)
+    if [ "$PRIMARY_STACK" = "all" ]; then
+        STACKS_TO_INSTALL="typescript,python,go"
+    else
+        STACKS_TO_INSTALL="$PRIMARY_STACK"
+    fi
 elif [[ "$DETECTED_STACKS" == *","* ]]; then
-    # Multiple stacks detected - use Claude to determine primary
+    # Multiple stacks detected - install all of them
     info "Multiple technologies detected: $DETECTED_STACKS"
+    STACKS_TO_INSTALL="$DETECTED_STACKS"
+    # Determine primary for convenience alias using Claude
     PRIMARY_STACK=$(analyze_project_with_claude "$TARGET_DIR" "$DETECTED_STACKS")
-    success "Primary stack identified: $PRIMARY_STACK"
+    success "Primary stack for alias: $PRIMARY_STACK"
 else
     # Single stack detected
     PRIMARY_STACK="$DETECTED_STACKS"
+    STACKS_TO_INSTALL="$DETECTED_STACKS"
     success "Detected technology stack: $PRIMARY_STACK"
 fi
 
@@ -445,46 +476,38 @@ mkdir -p "$GENERATED_DIR"
 
 info "Assembling dynamic engineer agent(s)..."
 
-if [ "$PRIMARY_STACK" = "all" ]; then
-    # Install all supported engineer variants
-    for stack in typescript python go; do
-        AGENT_FILE="$GENERATED_DIR/principal-engineer-${stack}"
-        assemble_agent "$stack" "$AGENT_FILE" "$PROFILES_DIR"
+# Install agent for each detected/selected stack
+IFS=',' read -ra STACK_ARRAY <<< "$STACKS_TO_INSTALL"
+for stack in "${STACK_ARRAY[@]+"${STACK_ARRAY[@]}"}"; do
+    # Trim whitespace
+    stack=$(echo "$stack" | tr -d '[:space:]')
 
-        # Create symlinks for the generated agent
-        AGENT_LINK="$BMAD_CLAUDE_SRC/agents/principal-engineer-${stack}.md"
-        COMMAND_LINK="$BMAD_CLAUDE_SRC/commands/agents/principal-engineer-${stack}.md"
-
-        [ -e "$AGENT_LINK" ] || [ -L "$AGENT_LINK" ] && rm -f "$AGENT_LINK"
-        [ -e "$COMMAND_LINK" ] || [ -L "$COMMAND_LINK" ] && rm -f "$COMMAND_LINK"
-
-        ln -s "$AGENT_FILE" "$AGENT_LINK"
-        ln -s "$AGENT_FILE" "$COMMAND_LINK"
-    done
-else
-    # Install only the detected/selected stack
-    AGENT_FILE="$GENERATED_DIR/principal-engineer-${PRIMARY_STACK}"
-    assemble_agent "$PRIMARY_STACK" "$AGENT_FILE" "$PROFILES_DIR"
+    AGENT_FILE="$GENERATED_DIR/principal-engineer-${stack}"
+    assemble_agent "$stack" "$AGENT_FILE" "$PROFILES_DIR"
 
     # Create symlinks for the generated agent
-    AGENT_LINK="$BMAD_CLAUDE_SRC/agents/principal-engineer-${PRIMARY_STACK}.md"
-    COMMAND_LINK="$BMAD_CLAUDE_SRC/commands/agents/principal-engineer-${PRIMARY_STACK}.md"
+    AGENT_LINK="$BMAD_CLAUDE_SRC/agents/principal-engineer-${stack}.md"
+    COMMAND_LINK="$BMAD_CLAUDE_SRC/commands/agents/principal-engineer-${stack}.md"
 
     [ -e "$AGENT_LINK" ] || [ -L "$AGENT_LINK" ] && rm -f "$AGENT_LINK"
     [ -e "$COMMAND_LINK" ] || [ -L "$COMMAND_LINK" ] && rm -f "$COMMAND_LINK"
 
     ln -s "$AGENT_FILE" "$AGENT_LINK"
     ln -s "$AGENT_FILE" "$COMMAND_LINK"
+done
 
-    # Also create a convenience alias without the stack suffix
+# Create convenience alias pointing to primary stack
+if [ -n "$PRIMARY_STACK" ]; then
     ALIAS_AGENT_LINK="$BMAD_CLAUDE_SRC/agents/principal-engineer.md"
     ALIAS_COMMAND_LINK="$BMAD_CLAUDE_SRC/commands/agents/principal-engineer.md"
+    PRIMARY_AGENT_FILE="$GENERATED_DIR/principal-engineer-${PRIMARY_STACK}"
 
     [ -e "$ALIAS_AGENT_LINK" ] || [ -L "$ALIAS_AGENT_LINK" ] && rm -f "$ALIAS_AGENT_LINK"
     [ -e "$ALIAS_COMMAND_LINK" ] || [ -L "$ALIAS_COMMAND_LINK" ] && rm -f "$ALIAS_COMMAND_LINK"
 
-    ln -s "$AGENT_FILE" "$ALIAS_AGENT_LINK"
-    ln -s "$AGENT_FILE" "$ALIAS_COMMAND_LINK"
+    ln -s "$PRIMARY_AGENT_FILE" "$ALIAS_AGENT_LINK"
+    ln -s "$PRIMARY_AGENT_FILE" "$ALIAS_COMMAND_LINK"
+    info "  Created alias principal-engineer → principal-engineer-${PRIMARY_STACK}"
 fi
 
 success "Dynamic engineer agent(s) assembled and linked"
@@ -594,7 +617,7 @@ echo "  ✓ BMad .claude populated with claudex-go/.claude symlinks"
 echo "  ✓ Agent profile symlinks created in BMad .claude"
 echo "  ✓ Agent profile symlinks created in BMad .cursor/rules"
 echo "  ✓ Profiles directory symlinked in BMad .claude"
-echo "  ✓ Dynamic engineer agent assembled for: $PRIMARY_STACK"
+echo "  ✓ Dynamic engineer agent(s) assembled for: $STACKS_TO_INSTALL"
 if [ "$SKIP_CLAUDE_LINK" = false ]; then
     echo "  ✓ Target project .claude symlinked to BMad .claude"
 fi
