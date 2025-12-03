@@ -2,3 +2,4 @@ sessions/
 *.log
 .claude/
 !claudex-go/.claude/
+roadmap.md
