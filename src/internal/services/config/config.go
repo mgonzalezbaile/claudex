@@ -32,7 +32,7 @@ func LoadWithFs(fs afero.Fs, path string) (*Config, error) {
 	return config, nil
 }
 
-// Load is a wrapper that uses AppFs and default path
+// Load is a wrapper that uses the provided filesystem and default path
 func Load(fs afero.Fs) (*Config, error) {
 	return LoadWithFs(fs, ".claudex.toml")
 }

@@ -70,8 +70,11 @@ func resolveDocPaths(paths []string) string {
 }
 
 func main() {
+	// Initialize dependencies
+	deps := NewDependencies()
+
 	// Load config file (before flag.Parse)
-	cfg, err := config.Load(AppFs)
+	cfg, err := config.Load(deps.FS)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
 		cfg = &config.Config{Doc: []string{}, NoOverwrite: false}
@@ -99,7 +102,7 @@ func main() {
 	}
 
 	// Ensure .claude directory is set up using setup usecase
-	setupUC := setupuc.New(AppFs, AppEnv)
+	setupUC := setupuc.New(deps.FS, deps.Env)
 	if err := setupUC.Execute(projectDir, *noOverwrite); err != nil {
 		fmt.Fprintf(os.Stderr, "Error setting up .claude directory: %v\n", err)
 		os.Exit(1)
@@ -141,7 +144,7 @@ func main() {
 	}
 
 	// Get sessions
-	sessions, err := session.GetSessions(AppFs, sessionsDir)
+	sessions, err := session.GetSessions(deps.FS, sessionsDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -206,7 +209,7 @@ func main() {
 		}
 
 		// Create the session using new usecase
-		newSessionUC := newuc.New(AppFs, AppCmd, AppUUID, AppClock, sessionsDir)
+		newSessionUC := newuc.New(deps.FS, deps.Cmd, deps.UUID, deps.Clock, sessionsDir)
 		sessionName, sessionPath, claudeSessionID, err := newSessionUC.Execute()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -302,7 +305,7 @@ func main() {
 
 			// Handle "Fresh Memory" choice using fresh usecase
 			if resumeSubmenuChoice == "fresh" {
-				freshUC := freshuc.New(AppFs, AppUUID, sessionsDir)
+				freshUC := freshuc.New(deps.FS, deps.UUID, sessionsDir)
 				newSessionName, newSessionPath, newClaudeSessionID, err := freshUC.Execute(fm.SessionName)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Error creating fresh session: %v\n", err)
@@ -342,7 +345,7 @@ func main() {
 			}
 
 			// Use fork usecase with description
-			forkUC := forkuc.New(AppFs, AppCmd, AppUUID, sessionsDir)
+			forkUC := forkuc.New(deps.FS, deps.Cmd, deps.UUID, sessionsDir)
 			newSessionName, newSessionPath, newClaudeSessionID, err := forkUC.ExecuteWithDescription(fm.SessionName, forkDescription)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error forking session: %v\n", err)
@@ -376,7 +379,7 @@ func main() {
 	if isNewSessionAlreadyInitialized {
 		// New session created, launch it with --session-id
 		// Update last used timestamp
-		if err := session.UpdateLastUsed(AppFs, AppClock, fm.SessionPath); err != nil {
+		if err := session.UpdateLastUsed(deps.FS, deps.Clock, fm.SessionPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Could not update last used timestamp: %v\n", err)
 		}
 
@@ -401,7 +404,7 @@ func main() {
 		}
 
 		// Launch the Claude session with activation command
-		if err := launchClaude(claudeSessionID, activationPrompt); err != nil {
+		if err := launchClaude(deps, claudeSessionID, activationPrompt); err != nil {
 			fmt.Fprintf(os.Stderr, "\n❌ Error running Claude session: %v\n", err)
 			os.Exit(1)
 		}
@@ -420,7 +423,7 @@ func main() {
 		}
 
 		// Update last used timestamp
-		if err := session.UpdateLastUsed(AppFs, AppClock, fm.SessionPath); err != nil {
+		if err := session.UpdateLastUsed(deps.FS, deps.Clock, fm.SessionPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Could not update last used timestamp: %v\n", err)
 		}
 
@@ -452,13 +455,13 @@ func main() {
 				activationPrompt += fmt.Sprintf(" with documentation %s", strings.Join(docPaths, ", "))
 			}
 
-			if err := launchClaude(claudeSessionID, activationPrompt); err != nil {
+			if err := launchClaude(deps, claudeSessionID, activationPrompt); err != nil {
 				fmt.Fprintf(os.Stderr, "\n❌ Error running Claude session: %v\n", err)
 				os.Exit(1)
 			}
 		} else {
 			// For resume, continue existing session
-			if err := resumeClaude(claudeSessionID); err != nil {
+			if err := resumeClaude(deps, claudeSessionID); err != nil {
 				fmt.Fprintf(os.Stderr, "\n❌ Error running Claude session: %v\n", err)
 				os.Exit(1)
 			}
@@ -485,7 +488,7 @@ func main() {
 		claudeSessionID = uuid.New().String()
 
 		// Rename session directory to include Claude session ID
-		err = session.RenameWithClaudeID(AppFs, fm.SessionPath, claudeSessionID)
+		err = session.RenameWithClaudeID(deps.FS, fm.SessionPath, claudeSessionID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "\n❌ Error renaming session directory: %v\n", err)
 			os.Exit(1)
@@ -503,7 +506,7 @@ func main() {
 		fmt.Printf("🔄 Session ID: %s\n\n", claudeSessionID)
 
 		// Update last used timestamp
-		if err := session.UpdateLastUsed(AppFs, AppClock, newSessionPath); err != nil {
+		if err := session.UpdateLastUsed(deps.FS, deps.Clock, newSessionPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Could not update last used timestamp: %v\n", err)
 		}
 
@@ -518,7 +521,7 @@ func main() {
 		}
 
 		// Launch the Claude session with activation command
-		if err := launchClaude(claudeSessionID, activationPrompt); err != nil {
+		if err := launchClaude(deps, claudeSessionID, activationPrompt); err != nil {
 			fmt.Fprintf(os.Stderr, "\n❌ Error running Claude session: %v\n", err)
 			os.Exit(1)
 		}
@@ -526,15 +529,15 @@ func main() {
 }
 
 // launchClaude launches a Claude CLI session with the provided session ID and activation prompt
-func launchClaude(sessionID string, activationPrompt string) error {
+func launchClaude(deps *Dependencies, sessionID string, activationPrompt string) error {
 	args := []string{"--session-id", sessionID}
 	if activationPrompt != "" {
 		args = append(args, activationPrompt)
 	}
-	return AppCmd.Start("claude", os.Stdin, os.Stdout, os.Stderr, args...)
+	return deps.Cmd.Start("claude", os.Stdin, os.Stdout, os.Stderr, args...)
 }
 
 // resumeClaude resumes an existing Claude CLI session
-func resumeClaude(sessionID string) error {
-	return AppCmd.Start("claude", os.Stdin, os.Stdout, os.Stderr, "--resume", sessionID)
+func resumeClaude(deps *Dependencies, sessionID string) error {
+	return deps.Cmd.Start("claude", os.Stdin, os.Stdout, os.Stderr, "--resume", sessionID)
 }
