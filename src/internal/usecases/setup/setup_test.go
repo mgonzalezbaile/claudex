@@ -18,18 +18,18 @@ func Test_Execute_CreatesStructure(t *testing.T) {
 
 	// Create config directory structure
 	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
-		"hooks/notification-hook.sh":        "#!/bin/bash\necho notify",
-		"hooks/session-end.sh":              "#!/bin/bash\necho end",
-		"hooks/subagent-stop.sh":            "#!/bin/bash\necho stop",
-		"hooks/pre-tool-use.sh":             "#!/bin/bash\necho pre",
-		"hooks/post-tool-use.sh":            "#!/bin/bash\necho post",
-		"hooks/auto-doc-updater.sh":         "#!/bin/bash\necho doc",
-		"profiles/agents/team-lead.md":      "# Team Lead Agent\nContent here",
-		"profiles/agents/architect.md":      "# Architect Agent\nContent here",
-		"profiles/roles/engineer.md":        "# {Stack} Engineer Role\nRole template",
-		"profiles/skills/typescript.md":     "# TypeScript Skill\nTypeScript expertise",
-		"profiles/skills/go.md":             "# Go Skill\nGo expertise",
-		"profiles/skills/python.md":         "# Python Skill\nPython expertise",
+		"hooks/notification-hook.sh":    "#!/bin/bash\necho notify",
+		"hooks/session-end.sh":          "#!/bin/bash\necho end",
+		"hooks/subagent-stop.sh":        "#!/bin/bash\necho stop",
+		"hooks/pre-tool-use.sh":         "#!/bin/bash\necho pre",
+		"hooks/post-tool-use.sh":        "#!/bin/bash\necho post",
+		"hooks/auto-doc-updater.sh":     "#!/bin/bash\necho doc",
+		"profiles/agents/team-lead.md":  "# Team Lead Agent\nContent here",
+		"profiles/agents/architect.md":  "# Architect Agent\nContent here",
+		"profiles/roles/engineer.md":    "# {Stack} Engineer Role\nRole template",
+		"profiles/skills/typescript.md": "# TypeScript Skill\nTypeScript expertise",
+		"profiles/skills/go.md":         "# Go Skill\nGo expertise",
+		"profiles/skills/python.md":     "# Python Skill\nPython expertise",
 	})
 
 	// Create project directory with package.json to detect TypeScript
@@ -92,11 +92,11 @@ func Test_Execute_RespectsNoOverwrite(t *testing.T) {
 
 	// Create config directory with agents
 	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
-		"profiles/agents/team-lead.md":      "# New Team Lead Content",
-		"profiles/agents/architect.md":      "# New Architect Content",
-		"profiles/roles/engineer.md":        "# {Stack} Engineer Role",
-		"profiles/skills/typescript.md":     "# TypeScript Skill",
-		"hooks/notification-hook.sh":        "#!/bin/bash\necho notify",
+		"profiles/agents/team-lead.md":  "# New Team Lead Content",
+		"profiles/agents/architect.md":  "# New Architect Content",
+		"profiles/roles/engineer.md":    "# {Stack} Engineer Role",
+		"profiles/skills/typescript.md": "# TypeScript Skill",
+		"hooks/notification-hook.sh":    "#!/bin/bash\necho notify",
 	})
 
 	// Create existing .claude directory with custom agent
@@ -177,7 +177,7 @@ func Test_Execute_GeneratesEngineerProfiles(t *testing.T) {
 
 	// Verify frontmatter generated
 	assert.Contains(t, contentStr, "name: principal-engineer-typescript")
-	assert.Contains(t, contentStr, "Description: Use this agent when you need a Principal TypeScript Engineer")
+	assert.Contains(t, contentStr, "description: Use this agent when you need a Principal TypeScript Engineer")
 
 	// Verify role content included (with {Stack} replaced)
 	assert.Contains(t, contentStr, "TypeScript Engineer Role")

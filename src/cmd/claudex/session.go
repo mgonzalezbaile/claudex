@@ -73,13 +73,26 @@ func (a *App) showSessionSelector() (*ui.Model, error) {
 }
 
 // handleNewSession processes the "Create New Session" choice
-func (a *App) handleNewSession(fm *ui.Model) (SessionInfo, error) {
+func (a *App) handleNewSession() (SessionInfo, error) {
+	// Prompt for description
+	description, err := a.promptNewSessionDescription()
+	if err != nil {
+		return SessionInfo{}, err
+	}
+
+	fmt.Println()
+	fmt.Println("\033[90m  Generating session name...\033[0m")
+
 	// Create the session using new usecase
 	newSessionUC := newuc.New(a.deps.FS, a.deps.Cmd, a.deps.UUID, a.deps.Clock, a.sessionsDir)
-	sessionName, sessionPath, claudeSessionID, err := newSessionUC.Execute()
+	sessionName, sessionPath, claudeSessionID, err := newSessionUC.Execute(description)
 	if err != nil {
 		return SessionInfo{}, fmt.Errorf("failed to create new session: %w", err)
 	}
+
+	fmt.Println()
+	fmt.Printf("\033[1;32m  Created: %s\033[0m\n", sessionName)
+	fmt.Println()
 
 	return SessionInfo{
 		Name:     sessionName,
@@ -87,6 +100,28 @@ func (a *App) handleNewSession(fm *ui.Model) (SessionInfo, error) {
 		ClaudeID: claudeSessionID,
 		Mode:     LaunchModeNew,
 	}, nil
+}
+
+// promptNewSessionDescription prompts user for new session description
+func (a *App) promptNewSessionDescription() (string, error) {
+	fmt.Print("\033[H\033[2J") // Clear screen
+	fmt.Println()
+	fmt.Println("\033[1;36m Create New Session \033[0m")
+	fmt.Println()
+	fmt.Print("  Description: ")
+
+	reader := bufio.NewReader(os.Stdin)
+	description, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	description = strings.TrimSpace(description)
+
+	if description == "" {
+		return "", fmt.Errorf("description cannot be empty")
+	}
+
+	return description, nil
 }
 
 // handleResumeOrFork processes resume/fork/fresh choices for existing sessions

@@ -3,7 +3,6 @@
 package new
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,34 +39,17 @@ func New(fs afero.Fs, cmd commander.Commander, uuidGen uuid.UUIDGenerator, clk c
 
 // Execute creates a new session by:
 // 1. Generating a UUID for the session
-// 2. Prompting user for description
-// 3. Generating session name (via Claude CLI or manual slug)
-// 4. Creating session directory with metadata files
-// 5. Returning session info for launching Claude
-func (uc *UseCase) Execute() (sessionName, sessionPath, claudeSessionID string, err error) {
-	fmt.Print("\033[H\033[2J") // Clear screen
-	fmt.Println()
-	fmt.Println("\033[1;36m Create New Session \033[0m")
-	fmt.Println()
-
-	// Generate UUID for the session upfront
-	claudeSessionID = uc.uuidGen.New()
-
-	// Get description from user
-	fmt.Print("  Description: ")
-	reader := bufio.NewReader(os.Stdin)
-	description, err := reader.ReadString('\n')
-	if err != nil {
-		return "", "", "", err
-	}
+// 2. Generating session name from description (via Claude CLI or manual slug)
+// 3. Creating session directory with metadata files
+// 4. Returning session info for launching Claude
+func (uc *UseCase) Execute(description string) (sessionName, sessionPath, claudeSessionID string, err error) {
 	description = strings.TrimSpace(description)
-
 	if description == "" {
 		return "", "", "", fmt.Errorf("description cannot be empty")
 	}
 
-	fmt.Println()
-	fmt.Println("\033[90m  🤖 Generating session name...\033[0m")
+	// Generate UUID for the session upfront
+	claudeSessionID = uc.uuidGen.New()
 
 	// Generate session name using Claude CLI or fallback to manual slug
 	baseSessionName, err := session.GenerateNameWithCmd(uc.cmd, description)
@@ -106,11 +88,6 @@ func (uc *UseCase) Execute() (sessionName, sessionPath, claudeSessionID string, 
 	if err := afero.WriteFile(uc.fs, filepath.Join(sessionPath, ".created"), []byte(created), 0644); err != nil {
 		return "", "", "", err
 	}
-
-	fmt.Println()
-	fmt.Println("\033[1;32m  ✓ Created: " + sessionName + "\033[0m")
-	fmt.Println()
-	time.Sleep(500 * time.Millisecond)
 
 	return sessionName, sessionPath, claudeSessionID, nil
 }

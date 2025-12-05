@@ -185,7 +185,7 @@ func (a *App) Run() error {
 	var si SessionInfo
 	switch fm.Choice {
 	case "new":
-		si, err = a.handleNewSession(fm)
+		si, err = a.handleNewSession()
 	case "ephemeral":
 		si = SessionInfo{
 			Name: fm.SessionName,
