@@ -13,8 +13,8 @@ type Config struct {
 	NoOverwrite bool     `toml:"no_overwrite"`
 }
 
-// LoadWithFs loads configuration from .claudex.toml using the provided filesystem
-func LoadWithFs(fs afero.Fs, path string) (*Config, error) {
+// Load loads configuration from the specified path using the provided filesystem
+func Load(fs afero.Fs, path string) (*Config, error) {
 	config := &Config{
 		Doc:         []string{},
 		NoOverwrite: false,
@@ -30,9 +30,4 @@ func LoadWithFs(fs afero.Fs, path string) (*Config, error) {
 		}
 	}
 	return config, nil
-}
-
-// Load is a wrapper that uses the provided filesystem and default path
-func Load(fs afero.Fs) (*Config, error) {
-	return LoadWithFs(fs, ".claudex.toml")
 }

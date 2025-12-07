@@ -82,7 +82,7 @@ func NewApp() *App {
 // Init initializes the application (parse flags, load config, setup logging)
 func (a *App) Init() error {
 	// Load config file (before flag.Parse)
-	cfg, err := config.Load(a.deps.FS)
+	cfg, err := config.Load(a.deps.FS, ".claudex.toml")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
 		cfg = &config.Config{Doc: []string{}, NoOverwrite: false}
