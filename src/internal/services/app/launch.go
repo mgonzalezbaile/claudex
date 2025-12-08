@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"claudex/internal/services/session"
-
-	"github.com/google/uuid"
 )
 
 // setEnvironment sets environment variables needed for Claude session
@@ -124,52 +122,17 @@ func (a *App) launchFresh(si SessionInfo) error {
 
 // launchEphemeral launches an ephemeral session
 func (a *App) launchEphemeral(si SessionInfo) error {
-	// Give terminal a moment to settle
-	time.Sleep(100 * time.Millisecond)
+	// Generate new session ID using dependency injection
+	claudeSessionID := a.deps.UUID.New()
 
-	// Clear screen and show launching message
-	fmt.Print("\033[H\033[2J\033[3J") // Clear screen and scrollback
-	fmt.Print("\033[0m")              // Reset all attributes
-	fmt.Printf("\n✅ Launching Claude with team-lead\n")
+	// Show launch message
+	fmt.Printf("\n✅ Launching ephemeral Claude session\n")
 	fmt.Printf("📦 Session: %s\n", si.Name)
-
-	// Generate new Claude session ID
-	claudeSessionID := uuid.New().String()
-
-	// Rename session directory to include Claude session ID
-	err := session.RenameWithClaudeID(a.deps.FS, si.Path, claudeSessionID)
-	if err != nil {
-		return fmt.Errorf("error renaming session directory: %w", err)
-	}
-
-	// Calculate new session path after rename
-	sessionName := filepath.Base(si.Path)
-	baseSessionName := session.StripClaudeSessionID(sessionName)
-	newDirName := fmt.Sprintf("%s-%s", baseSessionName, claudeSessionID)
-	newSessionPath := filepath.Join(filepath.Dir(si.Path), newDirName)
-
-	// Update environment variable with new path
-	os.Setenv("CLAUDEX_SESSION_PATH", newSessionPath)
-	fmt.Printf("📁 Session directory: %s\n", filepath.Base(newSessionPath))
 	fmt.Printf("🔄 Session ID: %s\n\n", claudeSessionID)
+	time.Sleep(500 * time.Millisecond)
 
-	// Update last used timestamp
-	if err := session.UpdateLastUsed(a.deps.FS, a.deps.Clock, newSessionPath); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Could not update last used timestamp: %v\n", err)
-	}
-
-	// Small delay before launching
-	time.Sleep(300 * time.Millisecond)
-
-	// Construct relative session path for activation command
-	relativeSessionPath := filepath.Join("sessions", filepath.Base(newSessionPath))
-	activationPrompt := fmt.Sprintf("/agents:team-lead activate in session %s", relativeSessionPath)
-	if len(a.docPaths) > 0 {
-		activationPrompt += fmt.Sprintf(" with documentation %s", strings.Join(a.docPaths, ", "))
-	}
-
-	// Launch the Claude session with activation command
-	return launchClaude(a.deps, claudeSessionID, activationPrompt)
+	// Launch Claude with NO activation prompt (ephemeral has no session folder)
+	return launchClaude(a.deps, claudeSessionID, "")
 }
 
 // launchClaude launches a Claude CLI session with the provided session ID and activation prompt
