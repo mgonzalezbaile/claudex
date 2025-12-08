@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Configuration
-UPDATE_FREQUENCY=5
+UPDATE_FREQUENCY="${CLAUDEX_AUTODOC_FREQUENCY:-5}"
 
 # Logging configuration
 # Use CLAUDEX_LOG_FILE if set, otherwise fallback to local file
@@ -46,6 +46,12 @@ log_message "Hook triggered"
 # Recursion Guard: Prevent hook from triggering itself if we call Claude internally
 if [ "${CLAUDE_HOOK_INTERNAL:-}" == "1" ]; then
     log_message "Recursion detected (CLAUDE_HOOK_INTERNAL=1). Exiting."
+    output_and_exit
+fi
+
+# Feature toggle check
+if [ "${CLAUDEX_AUTODOC_SESSION_PROGRESS:-true}" = "false" ]; then
+    log_message "Auto-documentation disabled (CLAUDEX_AUTODOC_SESSION_PROGRESS=false)"
     output_and_exit
 fi
 

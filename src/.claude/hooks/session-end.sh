@@ -45,6 +45,12 @@ if [ "$CLAUDE_HOOK_INTERNAL" == "1" ]; then
     output_and_exit
 fi
 
+# Feature toggle check
+if [ "${CLAUDEX_AUTODOC_SESSION_END:-true}" = "false" ]; then
+    log_message "Session end autodoc disabled (CLAUDEX_AUTODOC_SESSION_END=false)"
+    output_and_exit
+fi
+
 # Read JSON input from stdin
 INPUT_JSON=$(cat)
 

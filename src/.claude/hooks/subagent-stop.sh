@@ -45,6 +45,9 @@ if [ "$CLAUDE_HOOK_INTERNAL" == "1" ]; then
     output_and_exit
 fi
 
+# Feature toggle check (skip autodoc if disabled, but keep notifications)
+AUTODOC_ENABLED="${CLAUDEX_AUTODOC_SESSION_PROGRESS:-true}"
+
 # Read JSON input from stdin
 INPUT_JSON=$(cat)
 
@@ -156,7 +159,8 @@ TRANSCRIPT_CONTENT=$(tail -n 500 "$TRANSCRIPT_PATH")
 # ---------------------------------------------------------
 # Update Session Overview Documentation on Agent Stop
 # ---------------------------------------------------------
-log_message "Starting session overview documentation update for agent: $AGENT_ID"
+if [ "$AUTODOC_ENABLED" = "true" ]; then
+    log_message "Starting session overview documentation update for agent: $AGENT_ID"
 
 (
     # Determine transcript to process
@@ -266,7 +270,10 @@ log_message "Starting session overview documentation update for agent: $AGENT_ID
 # Disown to detach from parent shell
 disown
 
-log_message "Session overview documentation update dispatched in background"
+    log_message "Session overview documentation update dispatched in background"
+else
+    log_message "Auto-documentation disabled (CLAUDEX_AUTODOC_SESSION_PROGRESS=false)"
+fi
 
 log_message "Main script exiting"
 
