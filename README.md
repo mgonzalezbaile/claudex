@@ -66,6 +66,32 @@ Claudex includes specialized agent profiles:
 
 Profiles are automatically assembled based on your project's technology stack.
 
+## Configuration
+
+Create a `.claudex.toml` file in your project root to customize behavior:
+
+```toml
+# Documentation files always loaded into context
+doc = ["docs/index.md"]
+
+# Preserve existing .claude files during setup
+no_overwrite = true
+
+[features]
+# Auto-documentation during session (default: true)
+autodoc_session_progress = true
+
+# Auto-documentation on session end (default: true)
+autodoc_session_end = true
+
+# Tool executions between doc updates (default: 5)
+autodoc_frequency = 5
+```
+
+Environment variables override config values: `CLAUDEX_AUTODOC_SESSION_PROGRESS`, `CLAUDEX_AUTODOC_SESSION_END`, `CLAUDEX_AUTODOC_FREQUENCY`.
+
+**Tip:** Keep `doc` files lightweight. Use an `index.md` with brief descriptions and file paths—Claude will load details on demand, saving context for actual work.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
