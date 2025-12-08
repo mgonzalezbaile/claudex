@@ -4,19 +4,49 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
+	"claudex/internal/services/config"
 	"claudex/internal/services/session"
 )
 
 // setEnvironment sets environment variables needed for Claude session
-func (a *App) setEnvironment(si SessionInfo) {
+func (a *App) setEnvironment(si SessionInfo, cfg *config.Config) {
 	os.Setenv("CLAUDEX_SESSION", si.Name)
 	os.Setenv("CLAUDEX_SESSION_PATH", si.Path)
 	if len(a.docPaths) > 0 {
 		os.Setenv("CLAUDEX_DOC_PATHS", resolveDocPaths(a.docPaths))
 	}
+
+	// Export feature toggles with env var override support
+	// Env vars take precedence over config values
+	sessionProgress := getEnvBool("CLAUDEX_AUTODOC_SESSION_PROGRESS", cfg.Features.AutodocSessionProgress)
+	sessionEnd := getEnvBool("CLAUDEX_AUTODOC_SESSION_END", cfg.Features.AutodocSessionEnd)
+	frequency := getEnvInt("CLAUDEX_AUTODOC_FREQUENCY", cfg.Features.AutodocFrequency)
+
+	os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", strconv.FormatBool(sessionProgress))
+	os.Setenv("CLAUDEX_AUTODOC_SESSION_END", strconv.FormatBool(sessionEnd))
+	os.Setenv("CLAUDEX_AUTODOC_FREQUENCY", strconv.Itoa(frequency))
+}
+
+// getEnvBool returns env var value if set, otherwise returns default
+func getEnvBool(key string, defaultVal bool) bool {
+	if val := os.Getenv(key); val != "" {
+		return val == "true"
+	}
+	return defaultVal
+}
+
+// getEnvInt returns env var value if set, otherwise returns default
+func getEnvInt(key string, defaultVal int) int {
+	if val := os.Getenv(key); val != "" {
+		if i, err := strconv.Atoi(val); err == nil {
+			return i
+		}
+	}
+	return defaultVal
 }
 
 // launch launches Claude based on the session info and mode

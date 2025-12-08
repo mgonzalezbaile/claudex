@@ -263,7 +263,7 @@ func (a *App) Run() error {
 	a.renameLogFileForSession(si)
 
 	// Set environment and launch
-	a.setEnvironment(si)
+	a.setEnvironment(si, a.cfg)
 	return a.launch(si)
 }
 

@@ -1,10 +1,12 @@
 package app
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"claudex/internal/services/config"
 	"claudex/internal/testutil"
 
 	"github.com/spf13/afero"
@@ -207,7 +209,14 @@ func TestLaunchEphemeral_CorrectEnvironment(t *testing.T) {
 	}
 
 	// Set environment before launch (simulating what App.Run does)
-	app.setEnvironment(si)
+	cfg := &config.Config{
+		Features: config.Features{
+			AutodocSessionProgress: true,
+			AutodocSessionEnd:      true,
+			AutodocFrequency:       5,
+		},
+	}
+	app.setEnvironment(si, cfg)
 
 	// Execute launchEphemeral
 	_ = app.launchEphemeral(si)
@@ -455,4 +464,270 @@ func TestLaunchEphemeral_CompareWithLaunchNew(t *testing.T) {
 		entries, _ := afero.ReadDir(h.FS, sessionsDir)
 		require.Empty(t, entries, "ephemeral should not create directories")
 	})
+}
+
+// TestSetEnvironment_FeaturesDefaults verifies environment variables are set with config defaults
+func TestSetEnvironment_FeaturesDefaults(t *testing.T) {
+	// Save and restore env vars
+	origProgress := os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS")
+	origEnd := os.Getenv("CLAUDEX_AUTODOC_SESSION_END")
+	origFreq := os.Getenv("CLAUDEX_AUTODOC_FREQUENCY")
+	defer func() {
+		os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", origProgress)
+		os.Setenv("CLAUDEX_AUTODOC_SESSION_END", origEnd)
+		os.Setenv("CLAUDEX_AUTODOC_FREQUENCY", origFreq)
+	}()
+
+	// Clear env vars to test config defaults
+	os.Unsetenv("CLAUDEX_AUTODOC_SESSION_PROGRESS")
+	os.Unsetenv("CLAUDEX_AUTODOC_SESSION_END")
+	os.Unsetenv("CLAUDEX_AUTODOC_FREQUENCY")
+
+	h := testutil.NewTestHarness()
+	projectDir := "/project"
+
+	app := &App{
+		deps: &Dependencies{
+			FS:    h.FS,
+			Cmd:   h.Commander,
+			Clock: h,
+			UUID:  h,
+			Env:   h.Env,
+		},
+		projectDir: projectDir,
+	}
+
+	si := SessionInfo{
+		Name: "test-session",
+		Path: "/project/sessions/test-session",
+		Mode: LaunchModeNew,
+	}
+
+	cfg := &config.Config{
+		Features: config.Features{
+			AutodocSessionProgress: true,
+			AutodocSessionEnd:      true,
+			AutodocFrequency:       5,
+		},
+	}
+
+	// Set environment
+	app.setEnvironment(si, cfg)
+
+	// Verify environment variables match config defaults (using os.Getenv since setEnvironment uses os.Setenv)
+	require.Equal(t, "true", os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS"))
+	require.Equal(t, "true", os.Getenv("CLAUDEX_AUTODOC_SESSION_END"))
+	require.Equal(t, "5", os.Getenv("CLAUDEX_AUTODOC_FREQUENCY"))
+}
+
+// TestSetEnvironment_FeaturesCustomConfig verifies custom config values are exported
+func TestSetEnvironment_FeaturesCustomConfig(t *testing.T) {
+	// Save and restore env vars
+	origProgress := os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS")
+	origEnd := os.Getenv("CLAUDEX_AUTODOC_SESSION_END")
+	origFreq := os.Getenv("CLAUDEX_AUTODOC_FREQUENCY")
+	defer func() {
+		os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", origProgress)
+		os.Setenv("CLAUDEX_AUTODOC_SESSION_END", origEnd)
+		os.Setenv("CLAUDEX_AUTODOC_FREQUENCY", origFreq)
+	}()
+
+	// Clear env vars to test config values
+	os.Unsetenv("CLAUDEX_AUTODOC_SESSION_PROGRESS")
+	os.Unsetenv("CLAUDEX_AUTODOC_SESSION_END")
+	os.Unsetenv("CLAUDEX_AUTODOC_FREQUENCY")
+
+	h := testutil.NewTestHarness()
+	projectDir := "/project"
+
+	app := &App{
+		deps: &Dependencies{
+			FS:    h.FS,
+			Cmd:   h.Commander,
+			Clock: h,
+			UUID:  h,
+			Env:   h.Env,
+		},
+		projectDir: projectDir,
+	}
+
+	si := SessionInfo{
+		Name: "test-session",
+		Path: "/project/sessions/test-session",
+		Mode: LaunchModeNew,
+	}
+
+	cfg := &config.Config{
+		Features: config.Features{
+			AutodocSessionProgress: false,
+			AutodocSessionEnd:      true,
+			AutodocFrequency:       10,
+		},
+	}
+
+	// Set environment
+	app.setEnvironment(si, cfg)
+
+	// Verify custom config values
+	require.Equal(t, "false", os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS"))
+	require.Equal(t, "true", os.Getenv("CLAUDEX_AUTODOC_SESSION_END"))
+	require.Equal(t, "10", os.Getenv("CLAUDEX_AUTODOC_FREQUENCY"))
+}
+
+// TestSetEnvironment_EnvVarOverridesConfig verifies env vars override config values
+func TestSetEnvironment_EnvVarOverridesConfig(t *testing.T) {
+	// Save original env vars and restore after test
+	origProgress := os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS")
+	origEnd := os.Getenv("CLAUDEX_AUTODOC_SESSION_END")
+	origFreq := os.Getenv("CLAUDEX_AUTODOC_FREQUENCY")
+	defer func() {
+		os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", origProgress)
+		os.Setenv("CLAUDEX_AUTODOC_SESSION_END", origEnd)
+		os.Setenv("CLAUDEX_AUTODOC_FREQUENCY", origFreq)
+	}()
+
+	// Set env vars that should override config
+	os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", "false")
+	os.Setenv("CLAUDEX_AUTODOC_SESSION_END", "false")
+	os.Setenv("CLAUDEX_AUTODOC_FREQUENCY", "20")
+
+	h := testutil.NewTestHarness()
+	projectDir := "/project"
+
+	app := &App{
+		deps: &Dependencies{
+			FS:    h.FS,
+			Cmd:   h.Commander,
+			Clock: h,
+			UUID:  h,
+			Env:   h.Env,
+		},
+		projectDir: projectDir,
+	}
+
+	si := SessionInfo{
+		Name: "test-session",
+		Path: "/project/sessions/test-session",
+		Mode: LaunchModeNew,
+	}
+
+	cfg := &config.Config{
+		Features: config.Features{
+			AutodocSessionProgress: true,  // Config says true
+			AutodocSessionEnd:      true,  // Config says true
+			AutodocFrequency:       5,     // Config says 5
+		},
+	}
+
+	// Set environment - env vars should override config
+	app.setEnvironment(si, cfg)
+
+	// Verify env vars won (overrode config)
+	require.Equal(t, "false", os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS"))
+	require.Equal(t, "false", os.Getenv("CLAUDEX_AUTODOC_SESSION_END"))
+	require.Equal(t, "20", os.Getenv("CLAUDEX_AUTODOC_FREQUENCY"))
+}
+
+// TestSetEnvironment_PartialEnvVarOverride verifies partial env var overrides
+func TestSetEnvironment_PartialEnvVarOverride(t *testing.T) {
+	// Save original env vars and restore after test
+	origProgress := os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS")
+	origEnd := os.Getenv("CLAUDEX_AUTODOC_SESSION_END")
+	origFreq := os.Getenv("CLAUDEX_AUTODOC_FREQUENCY")
+	defer func() {
+		os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", origProgress)
+		os.Setenv("CLAUDEX_AUTODOC_SESSION_END", origEnd)
+		os.Setenv("CLAUDEX_AUTODOC_FREQUENCY", origFreq)
+	}()
+
+	// Only override one env var
+	os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", "false")
+	os.Unsetenv("CLAUDEX_AUTODOC_SESSION_END")     // Not set
+	os.Unsetenv("CLAUDEX_AUTODOC_FREQUENCY")       // Not set
+
+	h := testutil.NewTestHarness()
+	projectDir := "/project"
+
+	app := &App{
+		deps: &Dependencies{
+			FS:    h.FS,
+			Cmd:   h.Commander,
+			Clock: h,
+			UUID:  h,
+			Env:   h.Env,
+		},
+		projectDir: projectDir,
+	}
+
+	si := SessionInfo{
+		Name: "test-session",
+		Path: "/project/sessions/test-session",
+		Mode: LaunchModeNew,
+	}
+
+	cfg := &config.Config{
+		Features: config.Features{
+			AutodocSessionProgress: true,
+			AutodocSessionEnd:      true,
+			AutodocFrequency:       10,
+		},
+	}
+
+	// Set environment
+	app.setEnvironment(si, cfg)
+
+	// Verify: env var wins for progress, config wins for others
+	require.Equal(t, "false", os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS")) // Env var override
+	require.Equal(t, "true", os.Getenv("CLAUDEX_AUTODOC_SESSION_END"))       // Config value
+	require.Equal(t, "10", os.Getenv("CLAUDEX_AUTODOC_FREQUENCY"))           // Config value
+}
+
+// TestSetEnvironment_InvalidEnvVarValues verifies invalid env var values are handled
+func TestSetEnvironment_InvalidEnvVarValues(t *testing.T) {
+	// Save original env vars and restore after test
+	origProgress := os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS")
+	origFreq := os.Getenv("CLAUDEX_AUTODOC_FREQUENCY")
+	defer func() {
+		os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", origProgress)
+		os.Setenv("CLAUDEX_AUTODOC_FREQUENCY", origFreq)
+	}()
+
+	// Set invalid env var values
+	os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", "not-a-bool")
+	os.Setenv("CLAUDEX_AUTODOC_FREQUENCY", "not-a-number")
+
+	h := testutil.NewTestHarness()
+	projectDir := "/project"
+
+	app := &App{
+		deps: &Dependencies{
+			FS:    h.FS,
+			Cmd:   h.Commander,
+			Clock: h,
+			UUID:  h,
+			Env:   h.Env,
+		},
+		projectDir: projectDir,
+	}
+
+	si := SessionInfo{
+		Name: "test-session",
+		Path: "/project/sessions/test-session",
+		Mode: LaunchModeNew,
+	}
+
+	cfg := &config.Config{
+		Features: config.Features{
+			AutodocSessionProgress: true,
+			AutodocSessionEnd:      true,
+			AutodocFrequency:       5,
+		},
+	}
+
+	// Set environment
+	app.setEnvironment(si, cfg)
+
+	// Verify: invalid bool becomes false, invalid int falls back to config
+	require.Equal(t, "false", os.Getenv("CLAUDEX_AUTODOC_SESSION_PROGRESS")) // "not-a-bool" != "true" = false
+	require.Equal(t, "5", os.Getenv("CLAUDEX_AUTODOC_FREQUENCY"))            // Invalid int, uses config default
 }
