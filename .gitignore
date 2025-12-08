@@ -8,3 +8,5 @@ docs/
 playground/
 logs/
 src/claudex
+src/claudex-hooks
+bin/
