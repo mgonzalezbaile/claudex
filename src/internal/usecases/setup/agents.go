@@ -75,6 +75,8 @@ color: blue
 // formatStackName returns the properly capitalized display name for a stack
 func formatStackName(stack string) string {
 	switch stack {
+	case "react-native":
+		return "React Native"
 	case "typescript":
 		return "TypeScript"
 	case "go":

@@ -15,6 +15,13 @@ import (
 func Detect(fs afero.Fs, projectDir string) []string {
 	var stacks []string
 
+	// React Native detection (before TypeScript - RN projects also have package.json)
+	if FindFile(fs, projectDir, "app.json", 3) ||
+		FindFile(fs, projectDir, "react-native.config.js", 3) ||
+		FindFile(fs, projectDir, "metro.config.js", 3) {
+		stacks = append(stacks, "react-native")
+	}
+
 	// TypeScript detection
 	if FindFile(fs, projectDir, "tsconfig.json", 3) {
 		stacks = append(stacks, "typescript")
