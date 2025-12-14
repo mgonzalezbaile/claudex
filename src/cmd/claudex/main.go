@@ -22,6 +22,7 @@ var noOverwrite = flag.Bool("no-overwrite", false, "skip overwriting existing .c
 var showVersion = flag.Bool("version", false, "print version and exit")
 var updateDocs = flag.Bool("update-docs", false, "update index.md files based on git changes")
 var setupMCP = flag.Bool("setup-mcp", false, "configure recommended MCP servers (sequential-thinking, context7)")
+var createIndex = flag.String("create-index", "", "create index.md file at specified directory path")
 var docPaths stringSlice
 
 func init() {
@@ -29,7 +30,7 @@ func init() {
 }
 
 func main() {
-	application := app.New(Version, showVersion, noOverwrite, updateDocs, setupMCP, docPaths)
+	application := app.New(Version, showVersion, noOverwrite, updateDocs, setupMCP, createIndex, docPaths)
 
 	if err := application.Init(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

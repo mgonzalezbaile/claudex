@@ -4,6 +4,7 @@ Core business logic orchestrating features like session management, setup workfl
 
 ## Modules
 
+- **createindex/** - Generate index.md documentation files for any directory using Claude
 - **migrate/** - Migrate legacy Claudex artifacts to .claudex/ directory structure and create defaults
 - **session/** - Session lifecycle management (create, resume fresh, resume fork)
 - **setup/** - Initialize .claude directory structure with hooks, agents, and configuration

@@ -14,6 +14,7 @@ import (
 	"claudex/internal/services/paths"
 	"claudex/internal/services/profile"
 	"claudex/internal/services/session"
+	createindexuc "claudex/internal/usecases/createindex"
 	migrateuc "claudex/internal/usecases/migrate"
 	setupuc "claudex/internal/usecases/setup"
 	setuphookuc "claudex/internal/usecases/setuphook"
@@ -53,6 +54,7 @@ type App struct {
 	noOverwrite     bool
 	updateDocs      bool
 	setupMCP        bool
+	createIndex     string
 	logFile         afero.File
 	logFilePath     string
 	version         string
@@ -60,11 +62,12 @@ type App struct {
 	noOverwriteFlag *bool
 	updateDocsFlag  *bool
 	setupMCPFlag    *bool
+	createIndexFlag *string
 	docPathsFlag    []string
 }
 
 // New creates a new App instance with production dependencies
-func New(version string, showVersion *bool, noOverwrite *bool, updateDocs *bool, setupMCP *bool, docPaths []string) *App {
+func New(version string, showVersion *bool, noOverwrite *bool, updateDocs *bool, setupMCP *bool, createIndex *string, docPaths []string) *App {
 	return &App{
 		deps:            NewDependencies(),
 		version:         version,
@@ -72,6 +75,7 @@ func New(version string, showVersion *bool, noOverwrite *bool, updateDocs *bool,
 		noOverwriteFlag: noOverwrite,
 		updateDocsFlag:  updateDocs,
 		setupMCPFlag:    setupMCP,
+		createIndexFlag: createIndex,
 		docPathsFlag:    docPaths,
 	}
 }
@@ -112,6 +116,7 @@ func (a *App) Init() error {
 	}
 	a.updateDocs = *a.updateDocsFlag
 	a.setupMCP = *a.setupMCPFlag
+	a.createIndex = *a.createIndexFlag
 
 	projectDir, err := os.Getwd()
 	if err != nil {
@@ -260,6 +265,12 @@ func (a *App) Run() error {
 	if a.updateDocs {
 		uc := updatedocsuc.New(a.deps.FS, a.deps.Cmd, a.deps.Env)
 		return uc.Execute(a.projectDir)
+	}
+
+	// Early exit for --create-index mode
+	if a.createIndex != "" {
+		uc := createindexuc.New(a.deps.FS, a.deps.Cmd, a.deps.Env)
+		return uc.Execute(a.createIndex)
 	}
 
 	// Early exit for --setup-mcp mode
