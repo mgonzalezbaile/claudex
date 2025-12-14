@@ -10,9 +10,9 @@ import (
 )
 
 // InvokeClaudeForIndex invokes Claude to regenerate an index.md file.
-// This follows the pattern from indexupdater.go:153-199 with a detached background process.
+// Claude uses its Edit tool to update the file directly.
 // The recursion guard (CLAUDE_HOOK_INTERNAL=1) prevents infinite loops.
-func InvokeClaudeForIndex(cmdr commander.Commander, env env.Environment, indexDir, indexPath, listing, modifiedFiles string) error {
+func InvokeClaudeForIndex(cmdr commander.Commander, env env.Environment, indexPath, listing, modifiedFiles string) error {
 	// Recursion guard: check if we're already inside a hook invocation
 	if env.Get("CLAUDE_HOOK_INTERNAL") == "1" {
 		log.Printf("Skipping index update for %s: recursion guard triggered", indexPath)
@@ -22,16 +22,16 @@ func InvokeClaudeForIndex(cmdr commander.Commander, env env.Environment, indexDi
 	log.Printf("Spawning background process to regenerate %s", indexPath)
 
 	// Build Claude prompt with context
-	prompt := buildPrompt(indexDir, indexPath, listing, modifiedFiles)
+	prompt := buildPrompt(indexPath, listing, modifiedFiles)
 
 	// Create a detached background process using bash
 	// This ensures the process survives even after the calling process exits
-	// Note: Claude CLI outputs to stdout, so we pipe to the file
+	// Claude will use its Edit tool to update the file directly
 	// Using --model haiku for cost efficiency (index updates are simple tasks)
 	bashScript := fmt.Sprintf(`
 export CLAUDE_HOOK_INTERNAL=1
-claude -p %q --allowedTools "" --model haiku > %q 2>/dev/null
-`, prompt, indexPath)
+claude -p %q --model haiku 2>/dev/null
+`, prompt)
 
 	cmd := exec.Command("bash", "-c", bashScript)
 
@@ -46,11 +46,9 @@ claude -p %q --allowedTools "" --model haiku > %q 2>/dev/null
 }
 
 // buildPrompt constructs the Claude prompt for index.md regeneration
-func buildPrompt(indexDir, indexPath, listing, modifiedFiles string) string {
-	return fmt.Sprintf(`You are regenerating an index.md file for a documentation directory.
+func buildPrompt(indexPath, listing, modifiedFiles string) string {
+	return fmt.Sprintf(`Update the index.md file at %s.
 
-DIRECTORY: %s
-INDEX FILE: %s
 MODIFIED FILES:
 %s
 
@@ -59,11 +57,9 @@ FILES IN DIRECTORY:
 
 INSTRUCTIONS:
 1. Read the existing index.md to understand the current structure and style
-2. Generate updated index.md content listing all files in this directory
+2. Update it to reflect all files in the directory
 3. Use minimal pointer style: brief one-line descriptions
 4. Group files logically if patterns exist
 5. Keep descriptions concise (one line per file)
-6. Output ONLY the markdown content for index.md (no explanations or metadata)
-
-Read the existing index.md first, then generate the updated content.`, indexDir, indexPath, modifiedFiles, listing)
+6. Use the Edit tool to update the file directly`, indexPath, modifiedFiles, listing)
 }

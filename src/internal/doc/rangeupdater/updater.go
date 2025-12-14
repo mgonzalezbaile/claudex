@@ -218,8 +218,8 @@ func (ru *RangeUpdater) updateIndex(indexPath string, changedFiles []string) err
 	// Format changed files for context
 	filesContext := formatChangedFilesContext(changedFiles, indexDir)
 
-	// Invoke Claude to regenerate the index
-	return InvokeClaudeForIndex(ru.cmdr, ru.env, indexDir, indexPath, listing, filesContext)
+	// Invoke Claude to update the index file directly
+	return InvokeClaudeForIndex(ru.cmdr, ru.env, indexPath, listing, filesContext)
 }
 
 // getDirectoryListing returns a formatted listing of files in the directory

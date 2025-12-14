@@ -1,12 +1,10 @@
-Now I have all the information needed. Here's the updated index.md:
+# Use Cases
 
-# UseCases
+Core business logic orchestrating features like session management, setup workflows, documentation generation, and git hook integration.
 
-Application use cases implementing core business logic workflows.
+## Modules
 
-## Directories
-
-- **session/** - Session lifecycle management (new, resume)
-- **setup/** - .claude directory initialization with hooks, agents, and configuration
-- **setuphook/** - Hook installation detection and user preference management
-- **updatedocs/** - Git-based index.md documentation updates
+- **session/** - Session lifecycle management (create, resume fresh, resume fork)
+- **setup/** - Initialize .claude directory structure with hooks, agents, and configuration
+- **setuphook/** - Git hook installation detection and user preference management
+- **updatedocs/** - Update index.md documentation based on git history changes
