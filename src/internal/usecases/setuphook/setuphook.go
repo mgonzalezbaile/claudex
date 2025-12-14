@@ -1,3 +1,5 @@
+// Package setuphook provides the usecase for prompting users about git hook
+// integration and managing their preferences for automatic documentation updates.
 package setuphook
 
 import (
