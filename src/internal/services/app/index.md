@@ -7,6 +7,10 @@ Main application container for claudex CLI. Handles initialization, session life
 - `app.go` - App struct with Init/Run/Close lifecycle, config loading, logging setup, hook/MCP setup prompts
 - `deps.go` - Dependencies struct for dependency injection (FS, Cmd, Clock, UUID, Env)
 
+## Startup Validation
+
+- `isClaudeInstalled()` - Checks if Claude CLI is available in PATH; app exits with helpful error message if missing
+
 ## Launch
 
 - `launch.go` - Session launch modes (new, resume, fork, fresh, ephemeral) and Claude CLI invocation

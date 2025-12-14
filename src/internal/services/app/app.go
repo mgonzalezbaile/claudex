@@ -225,12 +225,29 @@ func (a *App) Run() error {
 	if !a.isClaudeInstalled() {
 		fmt.Println("\n❌ Claude Code CLI not found")
 		fmt.Println("\nClaudex requires Claude Code CLI to be installed.")
-		fmt.Println("Install it with:")
-		fmt.Println("  npm install -g @anthropic-ai/claude-code")
 		fmt.Println("\n⚠️  Note: Claude Code requires a Claude Pro ($20/mo), Max ($100/mo),")
 		fmt.Println("   or Team subscription. The free tier does not include Claude Code.")
-		fmt.Println("\nMore info: https://docs.anthropic.com/en/docs/claude-code")
-		return fmt.Errorf("claude CLI not installed")
+		fmt.Print("\nInstall Claude Code now? [y/n]: ")
+
+		var response string
+		fmt.Scanln(&response)
+
+		switch strings.ToLower(strings.TrimSpace(response)) {
+		case "y", "yes":
+			fmt.Println("\nInstalling Claude Code CLI...")
+			if err := a.deps.Cmd.Start("npm", os.Stdin, os.Stdout, os.Stderr, "install", "-g", "@anthropic-ai/claude-code"); err != nil {
+				fmt.Fprintf(os.Stderr, "\nInstallation failed: %v\n", err)
+				fmt.Println("You can install manually with: npm install -g @anthropic-ai/claude-code")
+				return fmt.Errorf("failed to install claude CLI")
+			}
+			fmt.Println("\n✓ Claude Code CLI installed successfully!")
+			fmt.Println("Please run 'claudex' again to continue.")
+			return nil
+		default:
+			fmt.Println("\nYou can install manually with: npm install -g @anthropic-ai/claude-code")
+			fmt.Println("More info: https://docs.anthropic.com/en/docs/claude-code")
+			return fmt.Errorf("claude CLI not installed")
+		}
 	}
 
 	// Early exit for --update-docs mode
