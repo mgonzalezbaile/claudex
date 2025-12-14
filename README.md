@@ -4,7 +4,7 @@ The Claude Experience you wish you had.
 
 > **Important: Claude Pro/Max/Team subscription required**
 >
-> Claudex requires [Claude Code](https://docs.anthropic.com/claude-code), which is only available with a Claude Pro ($20/mo), Max ($100/mo), or Team subscription. The free Claude tier does not include Claude Code access.
+> Claudex requires [Claude Code](https://docs.anthropic.com/claude-code), which is only available with a Claude Pro, Max, or Team subscription. The free Claude tier does not include Claude Code access.
 
 ## Features
 
@@ -66,7 +66,7 @@ Pick up any session instantly—even weeks later. Claude reads the overview, fol
 
 ### 📚 Auto-Updating Index Files
 
-Keep your codebase documentation current automatically. On first run in a git repo, claudex offers to install a post-commit hook:
+Keep your codebase documentation up-to-date automatically. On first run in a git repo, claudex offers to install a post-commit hook:
 
 ```
 📝 Enable auto-docs update after git commits? [y/n/never]:
@@ -205,11 +205,6 @@ Claudex stores its artifacts in a `.claudex/` folder in your project root:
 ├── logs/            # Log files
 └── preferences.json # User preferences
 ```
-
-**Migration Note:** Existing users are automatically migrated on first run:
-- `sessions/` → `.claudex/sessions/`
-- `logs/` → `.claudex/logs/`
-- `.claudex.toml` → `.claudex/config.toml`
 
 ### Customizing Behavior
 
