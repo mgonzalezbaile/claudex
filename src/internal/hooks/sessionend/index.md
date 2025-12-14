@@ -29,7 +29,7 @@ Final update always runs regardless of autodoc counter. Uses same configuration 
 
 ## Purpose
 
-Ensures session documentation is complete and up-to-date when user exits Claude Code, capturing all remaining transcript content not processed by PostToolUse autodoc.
+Ensures session documentation is complete and up-to-date when user exits Claude Code, capturing all remaining transcript content not processed by PostToolUse autodoc. Updates the initial `session-overview.md` created at session start with final session work.
 
 ## Usage
 
