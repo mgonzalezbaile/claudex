@@ -17,7 +17,7 @@ Final documentation update hook triggered when Claude Code session terminates.
 3. Reads last processed transcript line via `session.ReadLastProcessedLine()`
 4. Triggers final background doc update via `doc.Updater.RunBackground()`
 5. Uses incremental transcript parsing (startLine to current)
-6. Returns "allow" decision (non-blocking)
+6. Returns nil on success (no JSON output needed)
 
 ## Doc Update Configuration
 
