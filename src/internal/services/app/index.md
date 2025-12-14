@@ -9,7 +9,8 @@ Main application container for claudex CLI. Handles initialization, session life
 
 ## Startup Validation
 
-- `isClaudeInstalled()` - Checks if Claude CLI is available in PATH; app exits with helpful error message if missing
+- `isClaudeInstalled()` - Checks if Claude CLI is available in PATH
+- Claude CLI installation prompt - If missing, prompts user to install `@anthropic-ai/claude-code` via npm; automatically continues with normal flow after successful installation (or returns error if declined)
 
 ## Launch
 
