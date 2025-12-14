@@ -11,6 +11,11 @@ Application service layer providing infrastructure and domain-specific operation
 - `config/` - TOML configuration loading and parsing for .claudex.toml files
 - `settings/` - Claude Code settings.json management and smart-merge operations
 
+## MCP Configuration
+
+- `globalprefs/` - Global MCP setup preferences stored in ~/.config/claudex/mcp-preferences.json
+- `mcpconfig/` - MCP server configuration management in Claude Code's ~/.claude.json file
+
 ## Infrastructure
 
 - `clock/` - Time abstraction for testability
