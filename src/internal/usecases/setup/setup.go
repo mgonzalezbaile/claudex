@@ -6,6 +6,7 @@ package setup
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,7 +55,7 @@ func (uc *SetupUseCase) Execute(projectDir string, noOverwrite bool) error {
 		return fmt.Errorf("installation cancelled by user")
 	}
 
-	// Get config dir (~/.config/claudex)
+	// Get config dir (~/.config/claudex) for optional hooks
 	configDir := uc.env.Get("XDG_CONFIG_HOME")
 	if configDir == "" {
 		home := uc.env.Get("HOME")
@@ -64,11 +65,6 @@ func (uc *SetupUseCase) Execute(projectDir string, noOverwrite bool) error {
 		configDir = filepath.Join(home, ".config")
 	}
 	claudexConfigDir := filepath.Join(configDir, "claudex")
-
-	// Check if claudex config exists
-	if _, err := uc.fs.Stat(claudexConfigDir); err != nil {
-		return fmt.Errorf("claudex config directory not found at %s - please run 'make install' first", claudexConfigDir)
-	}
 
 	// Create .claude directory structure
 	hooksDir := filepath.Join(claudeDir, "hooks")
@@ -95,9 +91,8 @@ func (uc *SetupUseCase) Execute(projectDir string, noOverwrite bool) error {
 		fmt.Fprintf(os.Stderr, "Warning: Hooks directory not found at %s\n", sourceHooksDir)
 	}
 
-	// Copy agent profiles to both agents/ and commands/agents/
-	sourceAgentsDir := filepath.Join(claudexConfigDir, "profiles", "agents")
-	if err := uc.copyAgentProfiles(sourceAgentsDir, agentsDir, commandsAgentsDir, noOverwrite); err != nil {
+	// Copy agent profiles to both agents/ and commands/agents/ from embedded FS
+	if err := uc.copyAgentProfiles(agentsDir, commandsAgentsDir, noOverwrite); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to copy agent profiles: %v\n", err)
 	}
 
@@ -113,12 +108,9 @@ func (uc *SetupUseCase) Execute(projectDir string, noOverwrite bool) error {
 		stacks = []string{"typescript", "python", "go"}
 	}
 
-	// Generate principal-engineer-{stack} agents
-	rolesDir := filepath.Join(claudexConfigDir, "profiles", "roles")
-	skillsDir := filepath.Join(claudexConfigDir, "profiles", "skills")
-
+	// Generate principal-engineer-{stack} agents from embedded profiles
 	for _, stack := range stacks {
-		if err := AssembleEngineerAgent(uc.fs, stack, agentsDir, commandsAgentsDir, rolesDir, skillsDir, noOverwrite); err != nil {
+		if err := AssembleEngineerAgent(uc.fs, stack, agentsDir, commandsAgentsDir, noOverwrite); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to assemble principal-engineer-%s: %v\n", stack, err)
 		}
 	}
@@ -138,23 +130,20 @@ func HandleExistingClaudeDirectory(projectDir, claudeDir string) (proceed bool, 
 	return true, nil
 }
 
-// copyAgentProfiles copies agent profiles from source to both agents/ and commands/agents/
-func (uc *SetupUseCase) copyAgentProfiles(sourceAgentsDir, agentsDir, commandsAgentsDir string, noOverwrite bool) error {
-	if _, err := uc.fs.Stat(sourceAgentsDir); err != nil {
-		return fmt.Errorf("profiles directory not found at %s", sourceAgentsDir)
-	}
-
-	entries, err := afero.ReadDir(uc.fs, sourceAgentsDir)
+// copyAgentProfiles copies agent profiles from embedded FS to both agents/ and commands/agents/
+func (uc *SetupUseCase) copyAgentProfiles(agentsDir, commandsAgentsDir string, noOverwrite bool) error {
+	// Read agent profiles from embedded FS
+	entries, err := fs.ReadDir(claudex.Profiles, "profiles/agents")
 	if err != nil {
-		return fmt.Errorf("could not read agents directory: %w", err)
+		return fmt.Errorf("could not read embedded agents directory: %w", err)
 	}
 
 	for _, entry := range entries {
 		if !entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
-			sourcePath := filepath.Join(sourceAgentsDir, entry.Name())
-			content, err := afero.ReadFile(uc.fs, sourcePath)
+			// Read from embedded FS
+			content, err := fs.ReadFile(claudex.Profiles, filepath.Join("profiles/agents", entry.Name()))
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: Failed to read %s: %v\n", entry.Name(), err)
+				fmt.Fprintf(os.Stderr, "Warning: Failed to read embedded agent %s: %v\n", entry.Name(), err)
 				continue
 			}
 
@@ -189,7 +178,7 @@ func (uc *SetupUseCase) writeFileIfNeeded(path string, content []byte, noOverwri
 // generateSettings creates the settings.local.json file with hooks configuration
 // using the embedded template. If a settings file already exists, it merges
 // missing hooks while preserving user customizations.
-func (uc *SetupUseCase) generateSettings(claudeDir string, noOverwrite bool) error {
+func (uc *SetupUseCase) generateSettings(claudeDir string, _ bool) error {
 	settingsPath := filepath.Join(claudeDir, "settings.local.json")
 
 	// Check if file exists

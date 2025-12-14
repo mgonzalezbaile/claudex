@@ -16,20 +16,14 @@ func Test_Execute_CreatesStructure(t *testing.T) {
 	h := testutil.NewTestHarness()
 	h.Env.Set("HOME", "/home/user")
 
-	// Create config directory structure
+	// Create config directory with optional hooks (profiles are now embedded)
 	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
-		"hooks/notification-hook.sh":    "#!/bin/bash\necho notify",
-		"hooks/session-end.sh":          "#!/bin/bash\necho end",
-		"hooks/subagent-stop.sh":        "#!/bin/bash\necho stop",
-		"hooks/pre-tool-use.sh":         "#!/bin/bash\necho pre",
-		"hooks/post-tool-use.sh":        "#!/bin/bash\necho post",
-		"hooks/auto-doc-updater.sh":     "#!/bin/bash\necho doc",
-		"profiles/agents/team-lead.md":  "# Team Lead Agent\nContent here",
-		"profiles/agents/architect.md":  "# Architect Agent\nContent here",
-		"profiles/roles/engineer.md":    "# {Stack} Engineer Role\nRole template",
-		"profiles/skills/typescript.md": "# TypeScript Skill\nTypeScript expertise",
-		"profiles/skills/go.md":         "# Go Skill\nGo expertise",
-		"profiles/skills/python.md":     "# Python Skill\nPython expertise",
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
+		"hooks/session-end.sh":       "#!/bin/bash\necho end",
+		"hooks/subagent-stop.sh":     "#!/bin/bash\necho stop",
+		"hooks/pre-tool-use.sh":      "#!/bin/bash\necho pre",
+		"hooks/post-tool-use.sh":     "#!/bin/bash\necho post",
+		"hooks/auto-doc-updater.sh":  "#!/bin/bash\necho doc",
 	})
 
 	// Create project directory with package.json to detect TypeScript
@@ -61,11 +55,11 @@ func Test_Execute_CreatesStructure(t *testing.T) {
 	testutil.AssertFileContains(t, h.FS, "/project/.claude/hooks/notification-hook.sh", "echo notify")
 	testutil.AssertFileContains(t, h.FS, "/project/.claude/hooks/session-end.sh", "echo end")
 
-	// Verify - agents copied
-	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/team-lead.md.md")
-	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/architect.md.md")
-	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/team-lead.md.md")
-	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/architect.md.md")
+	// Verify - agents copied from embedded profiles
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/team-lead.md")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/architect.md")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/team-lead.md")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/architect.md")
 
 	// Verify - settings.local.json created with hook registrations
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/settings.local.json")
@@ -91,20 +85,16 @@ func Test_Execute_RespectsNoOverwrite(t *testing.T) {
 	h := testutil.NewTestHarness()
 	h.Env.Set("HOME", "/home/user")
 
-	// Create config directory with agents
+	// Create config directory with optional hooks (profiles are now embedded)
 	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
-		"profiles/agents/team-lead.md":  "# New Team Lead Content",
-		"profiles/agents/architect.md":  "# New Architect Content",
-		"profiles/roles/engineer.md":    "# {Stack} Engineer Role",
-		"profiles/skills/typescript.md": "# TypeScript Skill",
-		"hooks/notification-hook.sh":    "#!/bin/bash\necho notify",
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
 	})
 
 	// Create existing .claude directory with custom agent and settings
 	h.CreateDir("/project/.claude/agents")
 	h.CreateDir("/project/.claude/commands/agents")
 	h.WriteFile("/project/.claude/agents/custom-agent.md", "# My Custom Agent\nCustom content here")
-	h.WriteFile("/project/.claude/agents/team-lead.md.md", "# Old Team Lead\nOld content")
+	h.WriteFile("/project/.claude/agents/team-lead.md", "# Old Team Lead\nOld content")
 
 	// Create existing settings with custom permissions and a custom hook
 	existingSettings := `{
@@ -144,8 +134,8 @@ func Test_Execute_RespectsNoOverwrite(t *testing.T) {
 	testutil.AssertFileContains(t, h.FS, "/project/.claude/agents/custom-agent.md", "Custom content here")
 
 	// Verify - existing team-lead not overwritten
-	testutil.AssertFileContains(t, h.FS, "/project/.claude/agents/team-lead.md.md", "Old Team Lead")
-	testutil.AssertFileContains(t, h.FS, "/project/.claude/agents/team-lead.md.md", "Old content")
+	testutil.AssertFileContains(t, h.FS, "/project/.claude/agents/team-lead.md", "Old Team Lead")
+	testutil.AssertFileContains(t, h.FS, "/project/.claude/agents/team-lead.md", "Old content")
 
 	// Verify - settings merged: custom permissions preserved
 	testutil.AssertFileContains(t, h.FS, "/project/.claude/settings.local.json", `"allow": [`)
@@ -161,10 +151,8 @@ func Test_Execute_RespectsNoOverwrite(t *testing.T) {
 	testutil.AssertFileContains(t, h.FS, "/project/.claude/settings.local.json", "session-end.sh")
 	testutil.AssertFileContains(t, h.FS, "/project/.claude/settings.local.json", "Notification")
 
-	// Verify - architect agent NOT copied (noOverwrite prevents new files from being written if any exist)
-	// Note: Based on the implementation, noOverwrite only prevents overwriting existing files,
-	// new files are still created. So architect.md.md should exist.
-	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/architect.md.md")
+	// Verify - architect agent copied from embedded profiles (noOverwrite only prevents overwriting existing files)
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/architect.md")
 }
 
 // Test_Execute_GeneratesEngineerProfiles verifies that engineer
@@ -174,13 +162,9 @@ func Test_Execute_GeneratesEngineerProfiles(t *testing.T) {
 	h := testutil.NewTestHarness()
 	h.Env.Set("HOME", "/home/user")
 
-	// Create config with roles and skills
+	// Create optional hooks config (roles and skills are now embedded)
 	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
-		"profiles/roles/engineer.md":    "# {Stack} Engineer Role\nThis is the engineer role template.\n{Stack} specific content.",
-		"profiles/skills/typescript.md": "# TypeScript Skill\n\nExpert in TypeScript development.\nUses strict typing.",
-		"profiles/skills/go.md":         "# Go Skill\n\nExpert in Go development.\nIdiomatic Go patterns.",
-		"profiles/skills/python.md":     "# Python Skill\n\nExpert in Python.\nPEP 8 compliant.",
-		"hooks/notification-hook.sh":    "#!/bin/bash\necho notify",
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
 	})
 
 	// Create project with package.json (TypeScript marker)
@@ -202,8 +186,8 @@ func Test_Execute_GeneratesEngineerProfiles(t *testing.T) {
 	require.NoError(t, err)
 	defer content.Close()
 
-	// Read file content as bytes
-	buf := make([]byte, 4096)
+	// Read file content as bytes (need larger buffer for full content)
+	buf := make([]byte, 16384)
 	n, err := content.Read(buf)
 	require.NoError(t, err)
 	contentStr := string(buf[:n])
@@ -212,15 +196,13 @@ func Test_Execute_GeneratesEngineerProfiles(t *testing.T) {
 	assert.Contains(t, contentStr, "name: principal-engineer-typescript")
 	assert.Contains(t, contentStr, "description: Use this agent when you need a Principal TypeScript Engineer")
 
-	// Verify role content included (with {Stack} replaced)
-	assert.Contains(t, contentStr, "TypeScript Engineer Role")
-	assert.Contains(t, contentStr, "This is the engineer role template")
+	// Verify role content included from embedded profiles
+	assert.Contains(t, contentStr, "Principal Software Engineer specializing in TypeScript")
 	assert.NotContains(t, contentStr, "{Stack}") // Placeholder should be replaced
 
-	// Verify skill content included
-	assert.Contains(t, contentStr, "TypeScript Skill")
-	assert.Contains(t, contentStr, "Expert in TypeScript development")
-	assert.Contains(t, contentStr, "Uses strict typing")
+	// Verify skill content included from embedded profiles
+	assert.Contains(t, contentStr, "# TypeScript Skill")
+	assert.Contains(t, contentStr, "<skill_expertise>")
 
 	// Verify principal-engineer.md alias created (copy of primary stack)
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer.md")
@@ -228,14 +210,15 @@ func Test_Execute_GeneratesEngineerProfiles(t *testing.T) {
 	require.NoError(t, err)
 	defer aliasContent.Close()
 
-	aliasBuf := make([]byte, 4096)
+	aliasBuf := make([]byte, 16384)
 	aliasN, err := aliasContent.Read(aliasBuf)
 	require.NoError(t, err)
 	aliasContentStr := string(aliasBuf[:aliasN])
 
 	// Alias should have same content as principal-engineer-typescript
-	assert.Contains(t, aliasContentStr, "TypeScript Engineer Role")
-	assert.Contains(t, aliasContentStr, "Expert in TypeScript development")
+	assert.Contains(t, aliasContentStr, "Principal Software Engineer specializing in TypeScript")
+	assert.Contains(t, aliasContentStr, "# TypeScript Skill")
+	assert.Contains(t, aliasContentStr, "<skill_expertise>")
 
 	// Verify files also copied to commands/agents/
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/principal-engineer-typescript.md")
@@ -249,13 +232,9 @@ func Test_Execute_MultipleStacks(t *testing.T) {
 	h := testutil.NewTestHarness()
 	h.Env.Set("HOME", "/home/user")
 
-	// Create config with roles and skills
+	// Create optional hooks config (roles and skills are now embedded)
 	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
-		"profiles/roles/engineer.md":    "# {Stack} Engineer",
-		"profiles/skills/typescript.md": "# TypeScript Skill",
-		"profiles/skills/go.md":         "# Go Skill",
-		"profiles/skills/python.md":     "# Python Skill",
-		"hooks/notification-hook.sh":    "#!/bin/bash\necho notify",
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
 	})
 
 	// Create project with both package.json and go.mod (TypeScript + Go)
@@ -280,14 +259,15 @@ func Test_Execute_MultipleStacks(t *testing.T) {
 	require.NoError(t, err)
 	defer aliasContent.Close()
 
-	buf := make([]byte, 2048)
+	buf := make([]byte, 16384)
 	n, err := aliasContent.Read(buf)
 	require.NoError(t, err)
 	contentStr := string(buf[:n])
 
-	// Should contain TypeScript content (first stack)
-	assert.Contains(t, contentStr, "TypeScript Engineer")
-	assert.Contains(t, contentStr, "TypeScript Skill")
+	// Should contain TypeScript content from embedded profiles (first stack)
+	assert.Contains(t, contentStr, "Principal Software Engineer specializing in TypeScript")
+	assert.Contains(t, contentStr, "# TypeScript Skill")
+	assert.Contains(t, contentStr, "<skill_expertise>")
 }
 
 // Test_Execute_XDGConfigHome verifies that XDG_CONFIG_HOME
@@ -298,12 +278,9 @@ func Test_Execute_XDGConfigHome(t *testing.T) {
 	h.Env.Set("HOME", "/home/user")
 	h.Env.Set("XDG_CONFIG_HOME", "/custom/config")
 
-	// Create config in custom XDG location
+	// Create optional hooks in custom XDG location (profiles are now embedded)
 	h.SetupConfigDir("/custom/config/claudex", map[string]string{
-		"profiles/agents/team-lead.md":  "# Team Lead",
-		"profiles/roles/engineer.md":    "# Engineer",
-		"profiles/skills/typescript.md": "# TypeScript",
-		"hooks/notification-hook.sh":    "#!/bin/bash\necho notify",
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
 	})
 
 	// Create project
@@ -317,29 +294,9 @@ func Test_Execute_XDGConfigHome(t *testing.T) {
 	// Verify - no errors
 	require.NoError(t, err)
 
-	// Verify - structure created using XDG_CONFIG_HOME
+	// Verify - structure created using XDG_CONFIG_HOME for hooks, profiles from embedded
 	testutil.AssertDirExists(t, h.FS, "/project/.claude")
-	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/team-lead.md.md")
-}
-
-// Test_Execute_MissingConfigDir verifies that an error is returned
-// when the claudex config directory doesn't exist.
-func Test_Execute_MissingConfigDir(t *testing.T) {
-	// Setup
-	h := testutil.NewTestHarness()
-	h.Env.Set("HOME", "/home/user")
-	// Don't create the config directory
-
-	h.CreateDir("/project")
-
-	// Create usecase and exercise
-	uc := New(h.FS, h.Env)
-	err := uc.Execute("/project", false)
-
-	// Verify - error returned
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "claudex config directory not found")
-	assert.Contains(t, err.Error(), "/home/user/.config/claudex")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/team-lead.md")
 }
 
 // Test_Execute_MissingHOME verifies that an error is returned
@@ -367,13 +324,9 @@ func Test_Execute_NoStackDetected(t *testing.T) {
 	h := testutil.NewTestHarness()
 	h.Env.Set("HOME", "/home/user")
 
-	// Create config
+	// Create optional hooks config (roles and skills are now embedded)
 	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
-		"profiles/roles/engineer.md":    "# Engineer",
-		"profiles/skills/typescript.md": "# TypeScript",
-		"profiles/skills/go.md":         "# Go",
-		"profiles/skills/python.md":     "# Python",
-		"hooks/notification-hook.sh":    "#!/bin/bash\necho notify",
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
 	})
 
 	// Create empty project (no stack markers)

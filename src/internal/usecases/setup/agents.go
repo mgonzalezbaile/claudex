@@ -2,34 +2,33 @@ package setup
 
 import (
 	"fmt"
+	"io/fs"
 	"path/filepath"
 	"strings"
+
+	"claudex"
 
 	"github.com/spf13/afero"
 )
 
 // AssembleEngineerAgent creates a principal-engineer-{stack} agent from role + skill templates.
-// It reads the engineer.md role template and the stack-specific skill file (e.g., typescript.md),
-// combines them with frontmatter, and writes to both agents/ and commands/agents/ directories.
+// It reads the engineer.md role template and the stack-specific skill file (e.g., typescript.md)
+// from the embedded profiles, combines them with frontmatter, and writes to both agents/ and
+// commands/agents/ directories.
 //
 // Parameters:
-//   - fs: Filesystem abstraction for reading/writing files
+//   - afs: Filesystem abstraction for writing files
 //   - stack: Stack identifier (e.g., "typescript", "go", "python")
 //   - agentsDir: Target directory for agent profiles (.claude/agents)
 //   - commandsAgentsDir: Target directory for command agents (.claude/commands/agents)
-//   - rolesDir: Source directory for role templates
-//   - skillsDir: Source directory for skill templates
 //   - noOverwrite: If true, existing files will not be overwritten
 //
 // Returns an error if assembly fails.
-func AssembleEngineerAgent(fs afero.Fs, stack, agentsDir, commandsAgentsDir, rolesDir, skillsDir string, noOverwrite bool) error {
-	roleFile := filepath.Join(rolesDir, "engineer.md")
-	skillFile := filepath.Join(skillsDir, stack+".md")
-
-	// Read role template
-	roleContent, err := afero.ReadFile(fs, roleFile)
+func AssembleEngineerAgent(afs afero.Fs, stack, agentsDir, commandsAgentsDir string, noOverwrite bool) error {
+	// Read role template from embedded FS
+	roleContent, err := fs.ReadFile(claudex.Profiles, "profiles/roles/engineer.md")
 	if err != nil {
-		return fmt.Errorf("failed to read role file: %w", err)
+		return fmt.Errorf("failed to read embedded role file: %w", err)
 	}
 
 	// Capitalize stack name for display
@@ -48,9 +47,10 @@ color: blue
 	// Replace {Stack} placeholder in role content
 	roleStr := strings.ReplaceAll(string(roleContent), "{Stack}", stackDisplay)
 
-	// Read skill content if it exists
+	// Read skill content from embedded FS if it exists
 	var skillStr string
-	if skillContent, err := afero.ReadFile(fs, skillFile); err == nil {
+	skillPath := filepath.Join("profiles/skills", stack+".md")
+	if skillContent, err := fs.ReadFile(claudex.Profiles, skillPath); err == nil {
 		skillStr = "\n" + string(skillContent)
 	}
 
@@ -59,13 +59,13 @@ color: blue
 
 	// Write to agents/ directory
 	agentPath := filepath.Join(agentsDir, fmt.Sprintf("principal-engineer-%s.md", stack))
-	if err := writeAgentFile(fs, agentPath, []byte(agentContent), noOverwrite); err != nil {
+	if err := writeAgentFile(afs, agentPath, []byte(agentContent), noOverwrite); err != nil {
 		return fmt.Errorf("failed to write agent file: %w", err)
 	}
 
 	// Copy to commands/agents/
 	commandPath := filepath.Join(commandsAgentsDir, fmt.Sprintf("principal-engineer-%s.md", stack))
-	if err := writeAgentFile(fs, commandPath, []byte(agentContent), noOverwrite); err != nil {
+	if err := writeAgentFile(afs, commandPath, []byte(agentContent), noOverwrite); err != nil {
 		return fmt.Errorf("failed to write command file: %w", err)
 	}
 
