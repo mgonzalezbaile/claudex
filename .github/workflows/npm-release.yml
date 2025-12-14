@@ -37,6 +37,6 @@ jobs:
           cd ../darwin-x64 && npm publish --access public
           cd ../linux-x64 && npm publish --access public
           cd ../linux-arm64 && npm publish --access public
-          cd ../../claudex && npm publish --access public
+          cd ../cli && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

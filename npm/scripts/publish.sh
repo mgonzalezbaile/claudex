@@ -23,8 +23,8 @@ for platform in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
 done
 
 echo ""
-echo "Publishing main package..."
-(cd "$NPM_DIR/claudex" && npm publish --access public)
+echo "Publishing main package (@claudex/cli)..."
+(cd "$NPM_DIR/@claudex/cli" && npm publish --access public)
 
 echo ""
 echo "✓ All packages published successfully!"

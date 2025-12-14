@@ -139,7 +139,7 @@ You can also configure them manually anytime with `claudex --setup-mcp` or `make
 ### npm (Recommended)
 
 ```bash
-npm install -g claudex
+npm install -g @claudex/cli
 ```
 
 This works on macOS and Linux without needing to clone the repository.

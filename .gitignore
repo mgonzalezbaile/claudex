@@ -12,6 +12,6 @@ bin/
 
 # npm build artifacts
 dist/
-npm/@claudex/*/bin/
-!npm/claudex/bin/
+npm/@claudex/darwin-*/bin/
+npm/@claudex/linux-*/bin/
 *.tgz

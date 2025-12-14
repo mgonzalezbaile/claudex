@@ -1,6 +1,6 @@
 # App Package
 
-Main application container for claudex CLI.
+Main application container for claudex CLI. Handles initialization, session lifecycle, and post-install setup for npm distribution.
 
 ## Core
 

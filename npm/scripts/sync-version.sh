@@ -13,11 +13,11 @@ fi
 
 echo "Syncing version $VERSION to all packages..."
 
-# Update main package
+# Update main package (@claudex/cli)
 jq ".version = \"$VERSION\" | .optionalDependencies[\"@claudex/darwin-arm64\"] = \"$VERSION\" | .optionalDependencies[\"@claudex/darwin-x64\"] = \"$VERSION\" | .optionalDependencies[\"@claudex/linux-x64\"] = \"$VERSION\" | .optionalDependencies[\"@claudex/linux-arm64\"] = \"$VERSION\"" \
-  "$NPM_DIR/claudex/package.json" > "$NPM_DIR/claudex/package.json.tmp" && \
-  mv "$NPM_DIR/claudex/package.json.tmp" "$NPM_DIR/claudex/package.json"
-echo "✓ Updated claudex"
+  "$NPM_DIR/@claudex/cli/package.json" > "$NPM_DIR/@claudex/cli/package.json.tmp" && \
+  mv "$NPM_DIR/@claudex/cli/package.json.tmp" "$NPM_DIR/@claudex/cli/package.json"
+echo "✓ Updated @claudex/cli"
 
 # Update platform packages
 for platform in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do

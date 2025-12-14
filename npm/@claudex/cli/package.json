@@ -1,5 +1,5 @@
 {
-  "name": "claudex",
+  "name": "@claudex/cli",
   "version": "0.1.0",
   "description": "Claude Experience - Session manager for Claude CLI with persistent sessions and agent orchestration",
   "bin": {
