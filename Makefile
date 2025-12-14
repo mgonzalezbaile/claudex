@@ -42,6 +42,11 @@ install-hooks: build-hooks
 	@echo "✓ Installed claudex-hooks to $(BIN_DIR)"
 	@echo "✓ Installed hook proxies to $(CONFIG_DIR)/hooks"
 
+# Configure recommended MCPs (opt-in)
+install-mcp: build
+	@echo "Configuring recommended MCPs..."
+	@./claudex --setup-mcp
+
 # Install claudex for current user
 install: build build-hooks
 	@echo "Installing claudex..."
@@ -110,6 +115,7 @@ help:
 	@echo "  make test            - Run tests"
 	@echo "  make install         - Install claudex and hooks to ~/.local/bin and ~/.config/claudex"
 	@echo "  make install-hooks   - Install only hooks binary and proxies"
+	@echo "  make install-mcp     - Configure recommended MCP servers (sequential-thinking, context7)"
 	@echo "  make uninstall       - Remove claudex installation"
 	@echo "  make install-project - Install profiles/hooks to current project .claude/"
 	@echo "  make clean           - Remove build artifacts"

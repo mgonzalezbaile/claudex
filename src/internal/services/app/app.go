@@ -14,7 +14,9 @@ import (
 	"claudex/internal/services/session"
 	setupuc "claudex/internal/usecases/setup"
 	setuphookuc "claudex/internal/usecases/setuphook"
+	setupmcpuc "claudex/internal/usecases/setupmcp"
 	updatedocsuc "claudex/internal/usecases/updatedocs"
+	"claudex/internal/services/mcpconfig"
 	"github.com/spf13/afero"
 )
 
@@ -47,23 +49,26 @@ type App struct {
 	docPaths        []string
 	noOverwrite     bool
 	updateDocs      bool
+	setupMCP        bool
 	logFile         afero.File
 	logFilePath     string
 	version         string
 	showVersion     *bool
 	noOverwriteFlag *bool
 	updateDocsFlag  *bool
+	setupMCPFlag    *bool
 	docPathsFlag    []string
 }
 
 // New creates a new App instance with production dependencies
-func New(version string, showVersion *bool, noOverwrite *bool, updateDocs *bool, docPaths []string) *App {
+func New(version string, showVersion *bool, noOverwrite *bool, updateDocs *bool, setupMCP *bool, docPaths []string) *App {
 	return &App{
 		deps:            NewDependencies(),
 		version:         version,
 		showVersion:     showVersion,
 		noOverwriteFlag: noOverwrite,
 		updateDocsFlag:  updateDocs,
+		setupMCPFlag:    setupMCP,
 		docPathsFlag:    docPaths,
 	}
 }
@@ -97,6 +102,7 @@ func (a *App) Init() error {
 		a.noOverwrite = *a.noOverwriteFlag
 	}
 	a.updateDocs = *a.updateDocsFlag
+	a.setupMCP = *a.setupMCPFlag
 
 	projectDir, err := os.Getwd()
 	if err != nil {
@@ -220,8 +226,17 @@ func (a *App) Run() error {
 		return uc.Execute(a.projectDir)
 	}
 
+	// Early exit for --setup-mcp mode
+	if a.setupMCP {
+		a.promptMCPSetup()
+		return nil
+	}
+
 	// Check if user wants to enable git hook integration
 	a.promptHookSetup()
+
+	// Check if user wants to configure recommended MCPs
+	a.promptMCPSetup()
 
 	// Load team-lead profile directly (skip profile selection menu)
 	_, err := profile.LoadComposed(claudex.Profiles, "team-lead")
@@ -309,6 +324,51 @@ func (a *App) promptHookSetup() {
 			fmt.Fprintf(os.Stderr, "Warning: Could not save preference: %v\n", err)
 		}
 		fmt.Println("○ Won't ask again. Run 'claudex --setup-hook' to enable later.")
+	default:
+		fmt.Println("○ Skipped for now.")
+	}
+	fmt.Println()
+}
+
+// promptMCPSetup checks if we should offer MCP configuration
+func (a *App) promptMCPSetup() {
+	uc := setupmcpuc.New(a.deps.FS)
+
+	result := uc.ShouldPrompt()
+	if result != setupmcpuc.ResultPromptUser {
+		return // Nothing to prompt
+	}
+
+	// Simple prompt using fmt (not TUI - keep it lightweight)
+	fmt.Print("\nConfigure recommended MCPs (sequential-thinking, context7)? [y/n/never]: ")
+
+	var response string
+	fmt.Scanln(&response)
+
+	switch strings.ToLower(strings.TrimSpace(response)) {
+	case "y", "yes":
+		// Prompt for optional Context7 API token
+		fmt.Println("\nContext7 requires an API token for higher rate limits (optional).")
+		fmt.Printf("Generate one at: %s\n", mcpconfig.Context7TokenURL)
+		fmt.Print("Enter token (or press Enter to skip): ")
+
+		var token string
+		fmt.Scanln(&token)
+		token = strings.TrimSpace(token)
+
+		if err := uc.Install(token); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Could not configure MCPs: %v\n", err)
+		} else {
+			fmt.Println("✓ MCP configuration added to ~/.claude.json")
+			if token == "" {
+				fmt.Println("  Note: Context7 running in rate-limited mode (60 req/hour)")
+			}
+		}
+	case "never":
+		if err := uc.SaveDeclined(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Could not save preference: %v\n", err)
+		}
+		fmt.Println("○ Won't ask again. Run 'claudex --setup-mcp' to configure later.")
 	default:
 		fmt.Println("○ Skipped for now.")
 	}
