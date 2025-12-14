@@ -18,5 +18,3 @@ Documentation generation and update services for Claudex sessions.
 - `transcript_test.go` - Tests for transcript parsing
 - `prompts_test.go` - Tests for prompt template handling
 - `updater_test.go` - Tests for the documentation updater
-ng
-- `updater_test.go` - Tests for the documentation updater

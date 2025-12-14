@@ -47,7 +47,7 @@ claude -p %q --model haiku 2>/dev/null
 
 // buildPrompt constructs the Claude prompt for index.md regeneration
 func buildPrompt(indexPath, listing, modifiedFiles string) string {
-	return fmt.Sprintf(`Update the index.md file at %s.
+	return fmt.Sprintf(`A code change was made. Update the index.md at %s if needed.
 
 MODIFIED FILES:
 %s
@@ -55,11 +55,5 @@ MODIFIED FILES:
 FILES IN DIRECTORY:
 %s
 
-INSTRUCTIONS:
-1. Read the existing index.md to understand the current structure and style
-2. Update it to reflect all files in the directory
-3. Use minimal pointer style: brief one-line descriptions
-4. Group files logically if patterns exist
-5. Keep descriptions concise (one line per file)
-6. Use the Edit tool to update the file directly`, indexPath, modifiedFiles, listing)
+This is a lightweight documentation pointer that helps developers understand the codebase. Read the existing content and explore the surrounding code to understand its purpose. Make thoughtful updates that keep it relevant and useful.`, indexPath, modifiedFiles, listing)
 }
