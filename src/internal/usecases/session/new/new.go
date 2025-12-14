@@ -89,5 +89,33 @@ func (uc *UseCase) Execute(description string) (sessionName, sessionPath, claude
 		return "", "", "", err
 	}
 
+	// Create initial session-overview.md (best effort, don't fail session creation)
+	overviewContent := fmt.Sprintf(`# Session Overview: %s
+
+**Date**: %s
+**Status**: Initializing
+
+## Session Summary
+
+%s
+
+## Current Focus
+
+Session just started. Waiting for first task...
+
+## Key Documents
+
+(Documents will appear here as work progresses)
+
+## Progress Timeline
+
+- **%s** - Session created
+
+---
+
+*Last updated: %s (Initialization)*
+`, sessionName, created, description, created, created)
+	_ = afero.WriteFile(uc.fs, filepath.Join(sessionPath, "session-overview.md"), []byte(overviewContent), 0644)
+
 	return sessionName, sessionPath, claudeSessionID, nil
 }
