@@ -345,6 +345,7 @@ func Test_Execute_NoStackDetected(t *testing.T) {
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-typescript.md")
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-go.md")
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-python.md")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-php.md")
 
 	// Verify - principal-engineer alias created (first default: typescript)
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer.md")
