@@ -18,7 +18,7 @@ import (
 //
 // Parameters:
 //   - afs: Filesystem abstraction for writing files
-//   - stack: Stack identifier (e.g., "typescript", "go", "python")
+//   - stack: Stack identifier (e.g., "typescript", "go", "python", "php")
 //   - agentsDir: Target directory for agent profiles (.claude/agents)
 //   - commandsAgentsDir: Target directory for command agents (.claude/commands/agents)
 //   - noOverwrite: If true, existing files will not be overwritten
@@ -83,6 +83,8 @@ func formatStackName(stack string) string {
 		return "Go"
 	case "python":
 		return "Python"
+	case "php":
+		return "PHP"
 	default:
 		return strings.Title(stack)
 	}

@@ -1,6 +1,6 @@
 # Setup Usecase
 
-Initializes .claude directory structure with hooks, agents, commands, and project-specific configuration. Detects project technology stacks (TypeScript, Go, Python, React Native) and generates appropriate principal-engineer agents by assembling embedded role and skill templates.
+Initializes .claude directory structure with hooks, agents, commands, and project-specific configuration. Detects project technology stacks (TypeScript, Go, Python, React Native, PHP) and generates appropriate principal-engineer agents by assembling embedded role and skill templates.
 
 ## Key Files
 
@@ -23,6 +23,7 @@ The setup process automatically detects project technology stacks via marker fil
 - **TypeScript/JavaScript**: tsconfig.json, package.json
 - **Go**: go.mod
 - **Python**: pyproject.toml, requirements.txt, setup.py, Pipfile
+- **PHP**: composer.json, index.php
 
 Detected stacks are used to generate corresponding principal-engineer agents.
 

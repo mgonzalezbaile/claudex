@@ -43,5 +43,5 @@ Application service layer providing infrastructure and domain-specific operation
 ## Detection & Profiles
 
 - `profile/` - Agent profile loading and composition from embedded/filesystem sources
-- `stackdetect/` - Technology stack detection (TypeScript, Go, Python, React Native) via marker files
+- `stackdetect/` - Technology stack detection (TypeScript, Go, Python, React Native, PHP) via marker files
 ```

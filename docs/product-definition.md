@@ -107,7 +107,7 @@ Claudex ships with a set of "Standard Agents" designed to work together:
 *   **Role:** The Builder.
 *   **Responsibilities:**
     *   Executes the plan provided by the Architect.
-    *   **Skill Injection:** Can be loaded with specific "Skill Mixins" (e.g., Python Expert, TypeScript Expert, Go Expert) to match the project stack.
+    *   **Skill Injection:** Can be loaded with specific "Skill Mixins" (e.g., Python Expert, TypeScript Expert, Go Expert, PHP Expert) to match the project stack.
 
 ### 6.4. Principal AI/Prompt Engineer
 *   **Role:** AI & Evals Expert.
