@@ -118,7 +118,7 @@ func (uc *SetupUseCase) Execute(projectDir string, noOverwrite bool) error {
 	stacks := stackdetect.Detect(uc.fs, projectDir)
 	if len(stacks) == 0 {
 		// Default to all stacks if none detected
-		stacks = []string{"typescript", "python", "go"}
+		stacks = []string{"typescript", "python", "go", "php"}
 	}
 
 	// Generate principal-engineer-{stack} agents from embedded profiles

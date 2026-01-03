@@ -189,7 +189,7 @@ Claudex includes specialized agent profiles:
 | `team-lead` | Strategic planning and orchestration |
 | `architect` | System design and architecture |
 | `researcher` | Deep analysis and investigation |
-| `principal-engineer-{stack}` | Implementation (TypeScript, Python, Go) |
+| `principal-engineer-{stack}` | Implementation (TypeScript, Python, Go, PHP) |
 | `prompt-engineer` | Prompt design and optimization |
 
 Profiles are automatically assembled based on your project's technology stack.

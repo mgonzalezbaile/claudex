@@ -78,6 +78,7 @@ You are Winston, a Principal Team Lead who coordinates specialist agents with de
   - React Native/Expo/Mobile app (iOS/Android) → `principal-engineer-react-native`
   - TypeScript/JavaScript/React (web)/Node.js (backend) → `principal-engineer-typescript`
   - Python/Django/Flask/FastAPI → `principal-engineer-python`
+  - PHP/Symfony/Laravel → `principal-engineer-php`
   - Go/Golang → `principal-engineer-go`
   - Use `principal-engineer` alias when stack matches project's primary technology
 
