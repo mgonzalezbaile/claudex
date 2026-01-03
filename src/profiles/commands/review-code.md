@@ -1,10 +1,10 @@
 # Review Code Command
 
-Perform a comprehensive code review of implementation changes. This command analyzes code quality, identifies optimization opportunities, suggests maintainability improvements, and highlights potential bugs or edge cases.
+Perform comprehensive code review by orchestrating specialist agents. This command analyzes code quality, identifies bugs, suggests improvements, and provides actionable feedback through parallel delegation to language-specific experts.
 
 ## Step 1: Gather Context
 
-Determine what code to review by running these commands:
+Run git commands to identify what files need review:
 
 ```bash
 # Check git status for staged and unstaged changes
@@ -23,203 +23,160 @@ git log --oneline -10
 git diff HEAD~1 --stat
 ```
 
-**Ask the user to clarify the review scope:**
+## Step 2: Clarify Scope
+
+If the scope is ambiguous, ask the user to specify:
+
+**Questions to ask:**
 - Review staged changes?
 - Review specific files or directories?
 - Review recent commits (how many)?
 - Review all uncommitted changes?
 - Review specific pull request changes?
 
-## Step 2: Read the Code
+If the scope is clear from context (e.g., user said "review my staged changes"), proceed automatically.
 
-Based on the scope identified:
+## Step 3: Classify Files by Language
 
-1. Read all relevant files using the Read tool
-2. Read the actual diff content to understand what changed:
+Group the files to review by their primary language/technology:
 
-```bash
-# For staged changes
-git diff --cached
+**File Extension Mapping:**
+- `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs` → `principal-engineer-typescript`
+- `.go` → `principal-engineer-go`
+- `.py` → `principal-engineer-python`
+- Prompt files (`.md` in `src/profiles/`, agent profiles, commands, tasks) → `prompt-engineer`
+- Other extensions → `principal-engineer` (generic fallback)
 
-# For unstaged changes
-git diff
 
-# For specific files
-git diff path/to/file
+## Step 4: Delegate to Specialist Agents
 
-# For recent commits
-git diff HEAD~N..HEAD
-```
-
-3. Load related test files if they exist
-4. Check for documentation files related to the code
-
-## Step 3: Code Quality & Readability Review
-
-Analyze the code for quality and readability issues:
-
-**Naming & Conventions:**
-- Are variable, function, and type names clear and descriptive?
-- Do names follow project conventions and language idioms?
-- Are abbreviations avoided or well-established?
-
-**Code Structure:**
-- Is the code well-organized with clear separation of concerns?
-- Are functions/methods focused on a single responsibility?
-- Is the code DRY (Don't Repeat Yourself)?
-- Are there overly complex functions that should be split?
-
-**Readability:**
-- Is the code easy to understand on first reading?
-- Are complex logic sections commented appropriately?
-- Is the formatting consistent?
-- Are magic numbers/strings extracted to named constants?
-
-**Documentation:**
-- Are public APIs documented?
-- Are complex algorithms explained?
-- Are assumptions and edge cases documented?
-
-## Step 4: Optimization Opportunities Review
-
-Look for performance and efficiency improvements:
-
-**Algorithmic Efficiency:**
-- Are there O(n²) or worse algorithms that could be optimized?
-- Can any loops be eliminated or reduced?
-- Are there redundant operations?
-
-**Resource Usage:**
-- Are there memory leaks or unnecessary allocations?
-- Are resources (files, connections, locks) properly released?
-- Can caching reduce repeated expensive operations?
-
-**Language-Specific:**
-- Are language-specific performance best practices followed?
-- Are appropriate data structures used?
-- Are there opportunities to use built-in optimized functions?
-
-**Premature Optimization:**
-- Note if optimizations are premature and not justified by profiling
-- Balance readability vs performance
-
-## Step 5: Maintainability Improvements Review
-
-Evaluate long-term code health:
-
-**Testability:**
-- Is the code easily testable?
-- Are dependencies injected or hardcoded?
-- Can functions be tested in isolation?
-- Are there sufficient tests for the changes?
-
-**Modularity:**
-- Are components loosely coupled?
-- Are interfaces well-defined?
-- Can modules be reused or replaced easily?
-
-**Error Handling:**
-- Are errors handled appropriately?
-- Are error messages helpful for debugging?
-- Are edge cases handled gracefully?
-- Is error recovery logic sound?
-
-**Dependencies:**
-- Are new dependencies justified?
-- Are dependencies up-to-date and maintained?
-- Could standard library features replace dependencies?
-
-**Technical Debt:**
-- Are there TODOs or FIXMEs that should be addressed?
-- Are workarounds or hacks properly documented?
-- Should any code be refactored before proceeding?
-
-## Step 6: Potential Bugs & Edge Cases Review
-
-Identify correctness issues and edge cases:
-
-**Logic Errors:**
-- Are conditionals correct (&&, ||, negations)?
-- Are boundary conditions handled (off-by-one errors)?
-- Are null/undefined/nil values handled?
-- Are type conversions safe?
-
-**Concurrency Issues:**
-- Are race conditions possible?
-- Is shared state properly synchronized?
-- Are async operations handled correctly?
-
-**Security Concerns:**
-- Are inputs validated and sanitized?
-- Are there SQL injection or XSS vulnerabilities?
-- Are secrets or credentials exposed?
-- Are authentication/authorization checks present?
-
-**Edge Cases:**
-- What happens with empty inputs?
-- What happens with very large inputs?
-- What happens with invalid/malformed data?
-- Are timezone/locale issues considered?
-- Are integer overflow/underflow possible?
-
-**Resource Limits:**
-- What happens when disk/memory is full?
-- Are timeouts configured appropriately?
-- Are retry mechanisms in place?
-
-## Step 7: Produce Review Summary
-
-Generate a structured review report:
+For each language group, spawn the appropriate specialist agent using the Task tool with this standardized review task:
 
 ```markdown
-# Code Review Summary
+## Code Review Task
 
-**Reviewed:** [file paths or commit range]
-**Reviewer:** Claude
-**Date:** [current date]
+**Files to Review:**
+- [list of file paths for this language]
+
+**Review Criteria:**
+
+Analyze the code changes and provide feedback in these categories:
+
+1. **Critical Issues** 🔴 - Must fix before merging
+   - Bugs, logic errors, edge case failures
+   - Security vulnerabilities
+   - Breaking changes or regressions
+
+2. **Important Improvements** 🟡 - Should address
+   - Code quality and readability issues
+   - Performance concerns
+   - Maintainability problems
+   - Missing error handling
+
+3. **Minor Suggestions** 🟢 - Optional improvements
+   - Style and formatting
+   - Documentation enhancements
+   - Minor optimizations
+
+4. **Positive Highlights** ✅ - What was done well
+   - Good patterns and practices
+   - Clever solutions
+   - Excellent test coverage
+
+**Output Format:**
+
+Use this exact structure:
+
+```markdown
+# Code Review: [Language/Stack]
 
 ## Overall Assessment
-
-[Brief 2-3 sentence summary of code quality and readiness]
+[2-3 sentence summary of code quality]
 
 ## Critical Issues 🔴
-
-[Issues that MUST be fixed before merging - bugs, security issues, breaking changes]
+[If none, state "None identified"]
 
 - **[File:Line]** [Issue description]
   - Impact: [what could go wrong]
   - Recommendation: [how to fix]
 
 ## Important Improvements 🟡
-
-[Issues that SHOULD be addressed - quality, maintainability, performance concerns]
+[If none, state "None identified"]
 
 - **[File:Line]** [Issue description]
   - Impact: [why this matters]
   - Recommendation: [suggested improvement]
 
 ## Minor Suggestions 🟢
-
-[Optional improvements - style, documentation, minor optimizations]
+[If none, state "None identified"]
 
 - **[File:Line]** [Suggestion]
   - Benefit: [why this helps]
 
 ## Positive Highlights ✅
+[If none, state "None identified"]
 
-[What was done well - good patterns, clever solutions, excellent tests]
+- [What was done well]
 
-- [Positive observation]
+## Test Coverage Assessment
+- [Assessment of test completeness]
+- [Missing test scenarios if any]
+```
+
+**Important Notes:**
+- Be specific with file:line references
+- Provide actionable recommendations
+- Balance criticism with recognition of good work
+- Consider the project's conventions and context
+```
+
+**Delegation Strategy:**
+- Spawn agents in PARALLEL when reviewing multiple language groups
+- Each agent reviews only their language's files
+- Wait for all agents to complete before proceeding
+
+## Step 6: Aggregate Results
+
+Collect the review reports from all specialist agents and combine them into a unified summary:
+
+```markdown
+# Code Review Summary
+
+**Reviewed:** [file paths or commit range]
+**Reviewers:** [list of specialist agents used]
+**Date:** [current date]
+
+## Overall Assessment
+
+[Synthesize the overall code quality from all specialist reports]
+
+## Critical Issues 🔴
+
+[Aggregate all critical issues from all agents]
+[If none across all reviews, state "None identified"]
+
+## Important Improvements 🟡
+
+[Aggregate all important improvements from all agents]
+[If none across all reviews, state "None identified"]
+
+## Minor Suggestions 🟢
+
+[Aggregate all minor suggestions from all agents]
+[If none across all reviews, state "None identified"]
+
+## Positive Highlights ✅
+
+[Aggregate all positive highlights from all agents]
 
 ## Test Coverage
 
-- [Assessment of test completeness]
-- [Missing test scenarios if any]
+[Synthesize test coverage assessments from all agents]
 
 ## Next Steps
 
-1. [Prioritized list of actions to take]
-2. [...]
+1. [Prioritized action items based on severity]
+2. [Suggested workflow - e.g., "Fix critical issues, then re-run tests"]
 
 ## Review Statistics
 
@@ -228,50 +185,38 @@ Generate a structured review report:
 - Critical issues: [N]
 - Important improvements: [N]
 - Minor suggestions: [N]
+- Languages reviewed: [list]
 ```
 
-## Step 8: Interactive Clarification
+## Step 7: Present to User
 
-If you need more context to complete the review:
-
-**Ask about:**
-- Project conventions or standards
-- Performance requirements or constraints
-- Browser/platform support requirements
-- Test coverage expectations
-- Deployment environment considerations
-- Known technical debt or future plans
-
-**Offer to:**
-- Deep dive into specific files
+Display the aggregated review summary to the user and offer to:
+- Deep dive into specific issues
 - Review related code for consistency
-- Check integration points
-- Review test coverage
-- Suggest refactoring approaches
+- Provide refactoring examples
+- Re-review after fixes are applied
 
 ## Important Notes
 
-- Reviews should be constructive and specific
-- Provide examples of improvements when possible
-- Consider the project's tech stack and conventions
-- Balance perfectionism with pragmatism
-- Highlight both problems AND good practices
-- Use file:line references for precise feedback
-- Categorize by severity (critical/important/minor)
-- Consider the context: is this a prototype, production code, or refactoring?
+**Orchestration Principles:**
+- Keep the command lean - delegate detailed analysis to specialists
+- Spawn agents in parallel to maximize efficiency
+- Each agent is the expert in their domain
+- Aggregate results coherently for user-friendly output
 
-## When to Use This Command
+**Edge Cases:**
+- Single file reviews: Still delegate to appropriate specialist
+- Mixed language changes: Spawn multiple specialists in parallel
+- No changes found: Inform user clearly
+- Prompt/agent file changes: Use `prompt-engineer` for specialized review
 
-Use `/review-code` in these situations:
+**When to Use This Command:**
 
 - Before committing significant changes
 - Before creating a pull request
 - After implementing a new feature
 - When refactoring existing code
-- After a merge to review integration
-- When investigating bugs in recent changes
-- Before a release to review critical paths
-- When learning a new codebase (review recent quality work)
-- After team feedback to validate improvements
+- Before releases to review critical paths
+- When learning a codebase (review recent quality work)
 
-Regular code reviews catch issues early, improve code quality, and maintain project health.
+Regular code reviews catch issues early, improve quality, and maintain project health.
