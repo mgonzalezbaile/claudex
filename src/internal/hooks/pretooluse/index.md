@@ -93,10 +93,14 @@ Use LSP instead of brute-force Glob/Grep when possible:
 - `workspaceSymbol`: Search symbols across the codebase
 - `incomingCalls`/`outgoingCalls`: Trace call hierarchy
 
+**Parameters**: `operation`, `filePath` (absolute), `line`, `character`
+
 ### Context7 MCP (for library documentation)
 Before making assumptions about libraries/frameworks, query current docs:
-1. `mcp__context7__resolve-library-id`: Get library ID
+1. `mcp__context7__resolve-library-id`: Get library ID (e.g., "redis" → "/redis/redis")
 2. `mcp__context7__query-docs`: Query specific documentation
+
+**Constraint**: Max 3 calls per question
 
 ### Sequential Thinking MCP (for complex analysis)
 Use `mcp__sequential-thinking__sequentialthinking` for multi-step problem solving and trade-off analysis.
