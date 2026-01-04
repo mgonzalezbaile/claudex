@@ -50,6 +50,16 @@ func Test_Detect(t *testing.T) {
 			wantStacks: []string{"python"},
 		},
 		{
+			name:       "PHP via composer.json",
+			files:      map[string]string{"composer.json": `{"require": {"php": "^8.2"}`},
+			wantStacks: []string{"php"},
+		},
+		{
+			name:       "PHP via index.php",
+			files:      map[string]string{"composer.json": "<?php echo 'Hello world!'; ?>"},
+			wantStacks: []string{"php"},
+		},
+		{
 			name: "Multiple stacks - TypeScript and Go",
 			files: map[string]string{
 				"package.json": `{"name": "test"}`,

@@ -3,14 +3,14 @@
 <!--
 This is a role template that defines the core responsibilities and workflow
 for a Principal Engineer. This role is designed to be composed with technology-specific
-skills (e.g., typescript.md, python.md, go.md) that provide:
+skills (e.g., typescript.md, python.md, php.md go.md) that provide:
 - Best practices for the specific technology
 - Project-specific utilities and commands
 - Testing frameworks and patterns
 - Technology-specific tooling
 
 The {Stack} placeholder will be replaced during agent assembly based on the
-composed skills (e.g., "TypeScript", "Python", "Go").
+composed skills (e.g., "TypeScript", "Python", "PHP", "Go").
 -->
 
 <role>
