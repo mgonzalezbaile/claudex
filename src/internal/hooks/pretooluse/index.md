@@ -14,16 +14,19 @@ Context injection hook that modifies Task tool prompts with session folder infor
 ## Behavior
 
 1. Only modifies `Task` tool invocations (all other tools pass through unchanged)
-2. Detects Explore agents and provides specialized context:
-   - **Explore agents** (subagent_type="Explore", case-insensitive): Receive LSP/MCP tool instructions
+2. Detects agent type (subagent_type, case-insensitive) and provides specialized context:
+   - **Explore agents** (subagent_type="Explore"): Receive LSP/MCP tool instructions only
+   - **Plan agents** (subagent_type="Plan"): Receive planning context + detected tech stack skills
    - **Other agents**: Receive session context with documentation loading procedures
 3. Finds session folder using `session.FindSessionFolder()`
 4. Builds appropriate markdown context block:
    - For Explore agents: LSP (code navigation), Context7 (library docs), Sequential Thinking instructions
+   - For Plan agents: MCP tools, execution plan structure, phase/track labeling, detected tech stack skills
    - For other agents: Session path, mandatory rules, activation procedure (3-step doc loading)
-5. Uses pointer-based approach: references `session-overview.md` if available; falls back to file enumeration
-6. Injects context before original prompt using `UpdatedInput` field
-7. Returns "allow" with modified prompt for Task tools
+5. Plan agents detect tech stack (Go, TypeScript, etc.) and inject relevant skill guidance
+6. Uses pointer-based approach: references `session-overview.md` if available; falls back to file enumeration
+7. Injects context before original prompt using `UpdatedInput` field
+8. Returns "allow" with modified prompt for Task tools
 
 ## Context Injection Formats
 
@@ -111,6 +114,57 @@ Use `mcp__sequential-thinking__sequentialthinking` for multi-step problem solvin
 3. Use `findReferences` to understand usage patterns
 4. Fall back to Glob/Grep only for pattern-based searches
 5. Cite findings with file:line format
+
+---
+
+## ORIGINAL REQUEST
+
+{original prompt}
+```
+
+### For Plan Agents (Planning Context + Tech Stack Skills)
+
+```markdown
+## PLAN AGENT ENHANCEMENTS
+
+You are creating an execution plan. Use these tools and practices.
+
+### MCP Tools (MANDATORY)
+
+**Context7 MCP** - Query documentation for all libraries/frameworks:
+1. `mcp__context7__resolve-library-id`: Get library ID
+2. `mcp__context7__query-docs`: Query specific documentation
+
+**Sequential Thinking MCP** - Use for parallelization analysis:
+- Component boundary identification
+- Dependency mapping (what blocks what)
+- Shared contract discovery
+- Parallel opportunity grouping (Track A/B/C)
+- Sequential constraint justification
+
+### Execution Plan Structure
+
+**Phase Labeling** (MANDATORY):
+- `### Phase N: [Name] (Parallel: X independent tracks)`
+- `### Phase N: [Name] (Sequential)` with justification
+
+**Track Groupings** for parallel phases:
+```
+Track A: [task1, task2]
+Track B: [task3, task4]
+```
+
+**Architect Boundaries**:
+- Define WHAT to build and HOW to approach it
+- Code snippets: Max 15 lines for patterns, NOT full implementations
+- Use file:line pointers when referencing existing code
+
+### Detected Tech Stack Skills
+
+When multiple tech stacks are detected, skill-specific guidance is injected for:
+- **Go** - Go-specific patterns, best practices, and standard library usage
+- **TypeScript** - TypeScript-specific patterns, type safety, and framework guidance
+- (Other stacks detected based on project markers: go.mod, package.json, etc.)
 
 ---
 

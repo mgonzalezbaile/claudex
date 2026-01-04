@@ -5,7 +5,7 @@ Initializes .claude directory structure with hooks, agents, commands, and projec
 ## Key Files
 
 - **setup.go** - Main setup workflow orchestration
-- **agents.go** - Agent profile assembly from embedded role and skill templates
+- **agents.go** - Agent profile assembly from embedded role, skill, and common design principle templates
 
 ## Key Types
 
@@ -35,6 +35,18 @@ The `Execute` method creates the complete .claude directory structure:
    - Fallback: Installs hooks from embedded FS (for npm install users)
 3. Copies agent profiles from embedded FS to both agents/ and commands/agents/
 4. Detects project stacks using breadth-first file search (up to 3 levels deep)
-5. Generates principal-engineer-{stack} agents for each detected stack by combining embedded role + skill templates
+5. Generates principal-engineer-{stack} agents for each detected stack by combining:
+   - Engineer role template (profiles/roles/engineer.md)
+   - Stack-specific skill (profiles/skills/{stack}.md, e.g., typescript.md)
+   - Common design principles skill (profiles/skills/software-design-principles.md)
 6. Creates principal-engineer.md alias pointing to primary stack's agent
 7. Creates settings.local.json with hooks configuration
+
+## Agent Assembly
+
+The `AssembleEngineerAgent` function combines three profile components:
+
+1. **Frontmatter** - Auto-generated with agent name, description, model, and color
+2. **Engineer Role** - Base role template customized with stack display name (TypeScript, Go, Python, React Native)
+3. **Stack Skill** - Stack-specific capabilities (e.g., TypeScript-specific patterns)
+4. **Design Principles Skill** - Common design principles applied across all principal engineers (fail-fast, type safety, make illegal states unrepresentable, etc.)
