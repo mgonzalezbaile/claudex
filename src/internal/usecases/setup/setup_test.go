@@ -449,6 +449,93 @@ func Test_Execute_RunningTwiceDoesNotCorruptPaths(t *testing.T) {
 	}
 }
 
+// Test_Execute_IncludesCommonSkill verifies that the software-design-principles
+// common skill is included in all generated engineer agents.
+func Test_Execute_IncludesCommonSkill(t *testing.T) {
+	// Setup
+	h := testutil.NewTestHarness()
+	h.Env.Set("HOME", "/home/user")
+
+	// Create optional hooks config
+	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
+	})
+
+	// Create project with package.json (TypeScript marker)
+	h.CreateDir("/project")
+	h.WriteFile("/project/package.json", `{"name": "test-project"}`)
+
+	// Create usecase and exercise
+	uc := New(h.FS, h.Env)
+	err := uc.Execute("/project", false)
+
+	// Verify - no errors
+	require.NoError(t, err)
+
+	// Verify - principal-engineer-typescript.md exists
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-typescript.md")
+
+	// Read and verify content includes common skill
+	content, err := h.FS.Open("/project/.claude/agents/principal-engineer-typescript.md")
+	require.NoError(t, err)
+	defer content.Close()
+
+	buf := make([]byte, 32768) // Larger buffer for full content including common skill
+	n, err := content.Read(buf)
+	require.NoError(t, err)
+	contentStr := string(buf[:n])
+
+	// Verify common skill content is included
+	assert.Contains(t, contentStr, "# Software Design Principles")
+	assert.Contains(t, contentStr, "Fail-fast over silent fallbacks")
+	assert.Contains(t, contentStr, "Make illegal states unrepresentable")
+}
+
+// Test_Execute_CommonSkillAfterStackSkill verifies that the common skill
+// appears after the stack-specific skill in the assembled agent.
+func Test_Execute_CommonSkillAfterStackSkill(t *testing.T) {
+	// Setup
+	h := testutil.NewTestHarness()
+	h.Env.Set("HOME", "/home/user")
+
+	// Create optional hooks config
+	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
+	})
+
+	// Create project with package.json (TypeScript marker)
+	h.CreateDir("/project")
+	h.WriteFile("/project/package.json", `{"name": "test-project"}`)
+
+	// Create usecase and exercise
+	uc := New(h.FS, h.Env)
+	err := uc.Execute("/project", false)
+
+	// Verify - no errors
+	require.NoError(t, err)
+
+	// Read content
+	content, err := h.FS.Open("/project/.claude/agents/principal-engineer-typescript.md")
+	require.NoError(t, err)
+	defer content.Close()
+
+	buf := make([]byte, 32768)
+	n, err := content.Read(buf)
+	require.NoError(t, err)
+	contentStr := string(buf[:n])
+
+	// Find positions of stack skill and common skill markers
+	stackSkillPos := strings.Index(contentStr, "# TypeScript Skill")
+	commonSkillPos := strings.Index(contentStr, "# Software Design Principles")
+
+	// Verify both exist
+	assert.NotEqual(t, -1, stackSkillPos, "Stack skill should be present")
+	assert.NotEqual(t, -1, commonSkillPos, "Common skill should be present")
+
+	// Verify common skill comes after stack skill
+	assert.Greater(t, commonSkillPos, stackSkillPos, "Common skill should appear after stack skill")
+}
+
 // Test_Execute_MergesWithAbsolutePaths verifies that when merging settings,
 // the resulting hook paths are absolute.
 func Test_Execute_MergesWithAbsolutePaths(t *testing.T) {

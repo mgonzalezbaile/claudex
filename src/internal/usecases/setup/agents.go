@@ -54,8 +54,15 @@ color: blue
 		skillStr = "\n" + string(skillContent)
 	}
 
-	// Combine all parts
-	agentContent := frontmatter + roleStr + skillStr
+	// Read common design principles skill (always loaded for engineers)
+	var commonSkillStr string
+	commonSkillPath := "profiles/skills/software-design-principles.md"
+	if commonContent, err := fs.ReadFile(claudex.Profiles, commonSkillPath); err == nil {
+		commonSkillStr = "\n" + string(commonContent)
+	}
+
+	// Combine all parts: frontmatter + role + stack-skill + common-skill
+	agentContent := frontmatter + roleStr + skillStr + commonSkillStr
 
 	// Write to agents/ directory
 	agentPath := filepath.Join(agentsDir, fmt.Sprintf("principal-engineer-%s.md", stack))

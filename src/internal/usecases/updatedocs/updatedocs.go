@@ -15,6 +15,7 @@ import (
 	"claudex/internal/services/env"
 	"claudex/internal/services/git"
 	"claudex/internal/services/lock"
+	"claudex/internal/services/paths"
 
 	"github.com/spf13/afero"
 )
@@ -44,8 +45,8 @@ func New(fs afero.Fs, cmd commander.Commander, env env.Environment) *UpdateDocsU
 //
 // Returns an error if the update fails.
 func (uc *UpdateDocsUseCase) Execute(projectDir string) error {
-	// Use sessions directory for tracking state
-	sessionPath := filepath.Join(projectDir, "sessions")
+	// Use .claudex directory for tracking state
+	sessionPath := filepath.Join(projectDir, paths.ClaudexDir)
 
 	// Create services
 	gitSvc := git.New(uc.cmd)

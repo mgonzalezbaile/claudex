@@ -677,3 +677,552 @@ func TestHasIndexMdFiles_EmptyProjectRoot(t *testing.T) {
 	// Assert
 	assert.False(t, found, "Empty project root should return false for graceful degradation")
 }
+
+func TestHandler_ExploreAgent_InjectsMCPLSPContext(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	originalPrompt := "Explore the authentication flow in the codebase"
+	input := &shared.PreToolUseInput{
+		HookInput: shared.HookInput{
+			SessionID: "abc123",
+		},
+		ToolName: "Task",
+		ToolInput: map[string]interface{}{
+			"prompt":        originalPrompt,
+			"description":   "Exploration task",
+			"subagent_type": "Explore",
+		},
+	}
+
+	// Act
+	output, err := handler.Handle(input)
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, "PreToolUse", output.HookSpecificOutput.HookEventName)
+	assert.Equal(t, "allow", output.HookSpecificOutput.PermissionDecision)
+	require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+	// Verify prompt was modified with Explore-specific context
+	modifiedPrompt, ok := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+	require.True(t, ok)
+
+	// Should contain Explore-specific instructions
+	assert.Contains(t, modifiedPrompt, "## EXPLORE AGENT ENHANCEMENTS")
+	assert.Contains(t, modifiedPrompt, "### LSP Tool (PREFERRED for code navigation)")
+	assert.Contains(t, modifiedPrompt, "goToDefinition")
+	assert.Contains(t, modifiedPrompt, "findReferences")
+	assert.Contains(t, modifiedPrompt, "workspaceSymbol")
+	assert.Contains(t, modifiedPrompt, "### Context7 MCP (for library documentation)")
+	assert.Contains(t, modifiedPrompt, "mcp__context7__resolve-library-id")
+	assert.Contains(t, modifiedPrompt, "mcp__context7__query-docs")
+	assert.Contains(t, modifiedPrompt, "### Sequential Thinking MCP (for complex analysis)")
+	assert.Contains(t, modifiedPrompt, "mcp__sequential-thinking__sequentialthinking")
+	assert.Contains(t, modifiedPrompt, "### Exploration Best Practices")
+
+	// Should contain original request
+	assert.Contains(t, modifiedPrompt, "## ORIGINAL REQUEST")
+	assert.Contains(t, modifiedPrompt, originalPrompt)
+
+	// Verify all original fields are preserved
+	assert.Equal(t, "Exploration task", output.HookSpecificOutput.UpdatedInput["description"])
+	assert.Equal(t, "Explore", output.HookSpecificOutput.UpdatedInput["subagent_type"])
+}
+
+func TestHandler_ExploreAgent_CaseInsensitive(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	testCases := []struct {
+		name          string
+		subagentType  string
+		shouldTrigger bool
+	}{
+		{"lowercase", "explore", true},
+		{"uppercase", "EXPLORE", true},
+		{"mixed case", "ExPlOrE", true},
+		{"proper case", "Explore", true},
+		{"researcher", "researcher", false},
+		{"architect", "Architect", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := &shared.PreToolUseInput{
+				HookInput: shared.HookInput{
+					SessionID: "abc123",
+				},
+				ToolName: "Task",
+				ToolInput: map[string]interface{}{
+					"prompt":        "Test prompt",
+					"subagent_type": tc.subagentType,
+				},
+			}
+
+			// Act
+			output, err := handler.Handle(input)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+			modifiedPrompt := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+
+			if tc.shouldTrigger {
+				assert.Contains(t, modifiedPrompt, "## EXPLORE AGENT ENHANCEMENTS",
+					"Expected Explore context for subagent_type: %s", tc.subagentType)
+			} else {
+				assert.NotContains(t, modifiedPrompt, "## EXPLORE AGENT ENHANCEMENTS",
+					"Did not expect Explore context for subagent_type: %s", tc.subagentType)
+			}
+		})
+	}
+}
+
+func TestHandler_ExploreAgent_NoSessionContext(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder with files
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	// Create session files that would normally be listed
+	afero.WriteFile(fs, sessionPath+"/research.md", []byte("content"), 0644)
+	afero.WriteFile(fs, sessionPath+"/plan.md", []byte("content"), 0644)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	input := &shared.PreToolUseInput{
+		HookInput: shared.HookInput{
+			SessionID: "abc123",
+		},
+		ToolName: "Task",
+		ToolInput: map[string]interface{}{
+			"prompt":        "Explore the codebase",
+			"subagent_type": "Explore",
+		},
+	}
+
+	// Act
+	output, err := handler.Handle(input)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+	modifiedPrompt := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+
+	// Should NOT contain session context markers
+	assert.NotContains(t, modifiedPrompt, "## SESSION CONTEXT (CRITICAL)")
+	assert.NotContains(t, modifiedPrompt, "MANDATORY RULES")
+	assert.NotContains(t, modifiedPrompt, "### Session Folder Contents:")
+	assert.NotContains(t, modifiedPrompt, sessionPath)
+
+	// Should contain Explore-specific context
+	assert.Contains(t, modifiedPrompt, "## EXPLORE AGENT ENHANCEMENTS")
+}
+
+func TestHandler_NonExploreAgent_StillGetsSessionContext(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder with files
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	afero.WriteFile(fs, sessionPath+"/research.md", []byte("content"), 0644)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	input := &shared.PreToolUseInput{
+		HookInput: shared.HookInput{
+			SessionID: "abc123",
+		},
+		ToolName: "Task",
+		ToolInput: map[string]interface{}{
+			"prompt":        "Research the authentication pattern",
+			"subagent_type": "researcher",
+		},
+	}
+
+	// Act
+	output, err := handler.Handle(input)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+	modifiedPrompt := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+
+	// Should contain session context (not Explore context)
+	assert.Contains(t, modifiedPrompt, "## SESSION CONTEXT (CRITICAL)")
+	assert.Contains(t, modifiedPrompt, "MANDATORY RULES")
+	assert.Contains(t, modifiedPrompt, sessionPath)
+
+	// Should NOT contain Explore-specific context
+	assert.NotContains(t, modifiedPrompt, "## EXPLORE AGENT ENHANCEMENTS")
+	assert.NotContains(t, modifiedPrompt, "### LSP Tool (PREFERRED for code navigation)")
+}
+
+func TestHandler_PlanAgent_InjectsPlanContext(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	originalPrompt := "Create an execution plan for adding authentication"
+	input := &shared.PreToolUseInput{
+		HookInput: shared.HookInput{
+			SessionID: "abc123",
+			CWD:       "/workspace/project",
+		},
+		ToolName: "Task",
+		ToolInput: map[string]interface{}{
+			"prompt":        originalPrompt,
+			"description":   "Planning task",
+			"subagent_type": "Plan",
+		},
+	}
+
+	// Act
+	output, err := handler.Handle(input)
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, "PreToolUse", output.HookSpecificOutput.HookEventName)
+	assert.Equal(t, "allow", output.HookSpecificOutput.PermissionDecision)
+	require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+	// Verify prompt was modified with Plan-specific context
+	modifiedPrompt, ok := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+	require.True(t, ok)
+
+	// Should contain Plan-specific instructions
+	assert.Contains(t, modifiedPrompt, "## PLAN AGENT ENHANCEMENTS")
+	assert.Contains(t, modifiedPrompt, "### MCP Tools (MANDATORY)")
+	assert.Contains(t, modifiedPrompt, "**Context7 MCP**")
+	assert.Contains(t, modifiedPrompt, "mcp__context7__resolve-library-id")
+	assert.Contains(t, modifiedPrompt, "mcp__context7__query-docs")
+	assert.Contains(t, modifiedPrompt, "**Sequential Thinking MCP**")
+	assert.Contains(t, modifiedPrompt, "Component boundary identification")
+	assert.Contains(t, modifiedPrompt, "parallelization analysis")
+	assert.Contains(t, modifiedPrompt, "### Execution Plan Structure")
+	assert.Contains(t, modifiedPrompt, "**Phase Labeling**")
+	assert.Contains(t, modifiedPrompt, "**Track Groupings**")
+	assert.Contains(t, modifiedPrompt, "**Architect Boundaries**")
+
+	// Should contain original request
+	assert.Contains(t, modifiedPrompt, "## ORIGINAL REQUEST")
+	assert.Contains(t, modifiedPrompt, originalPrompt)
+
+	// Verify all original fields are preserved
+	assert.Equal(t, "Planning task", output.HookSpecificOutput.UpdatedInput["description"])
+	assert.Equal(t, "Plan", output.HookSpecificOutput.UpdatedInput["subagent_type"])
+}
+
+func TestHandler_PlanAgent_CaseInsensitive(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	testCases := []struct {
+		name          string
+		subagentType  string
+		shouldTrigger bool
+	}{
+		{"lowercase", "plan", true},
+		{"uppercase", "PLAN", true},
+		{"mixed case", "PlAn", true},
+		{"proper case", "Plan", true},
+		{"researcher", "researcher", false},
+		{"architect", "Architect", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := &shared.PreToolUseInput{
+				HookInput: shared.HookInput{
+					SessionID: "abc123",
+					CWD:       "/workspace/project",
+				},
+				ToolName: "Task",
+				ToolInput: map[string]interface{}{
+					"prompt":        "Test prompt",
+					"subagent_type": tc.subagentType,
+				},
+			}
+
+			// Act
+			output, err := handler.Handle(input)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+			modifiedPrompt := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+
+			if tc.shouldTrigger {
+				assert.Contains(t, modifiedPrompt, "## PLAN AGENT ENHANCEMENTS",
+					"Expected Plan context for subagent_type: %s", tc.subagentType)
+			} else {
+				assert.NotContains(t, modifiedPrompt, "## PLAN AGENT ENHANCEMENTS",
+					"Did not expect Plan context for subagent_type: %s", tc.subagentType)
+			}
+		})
+	}
+}
+
+func TestHandler_PlanAgent_DetectsGoStack(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	// Create project with go.mod
+	projectPath := "/workspace/project"
+	err = fs.MkdirAll(projectPath, 0755)
+	require.NoError(t, err)
+	afero.WriteFile(fs, projectPath+"/go.mod", []byte("module test"), 0644)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	input := &shared.PreToolUseInput{
+		HookInput: shared.HookInput{
+			SessionID: "abc123",
+			CWD:       projectPath,
+		},
+		ToolName: "Task",
+		ToolInput: map[string]interface{}{
+			"prompt":        "Create execution plan",
+			"subagent_type": "Plan",
+		},
+	}
+
+	// Act
+	output, err := handler.Handle(input)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+	modifiedPrompt := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+
+	// Should contain Plan context
+	assert.Contains(t, modifiedPrompt, "## PLAN AGENT ENHANCEMENTS")
+
+	// Should contain detected Go stack skills
+	assert.Contains(t, modifiedPrompt, "### Detected Tech Stack Skills")
+	assert.Contains(t, modifiedPrompt, "#### Go")
+}
+
+func TestHandler_PlanAgent_DetectsTypeScriptStack(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	// Create project with package.json
+	projectPath := "/workspace/project"
+	err = fs.MkdirAll(projectPath, 0755)
+	require.NoError(t, err)
+	afero.WriteFile(fs, projectPath+"/package.json", []byte("{}"), 0644)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	input := &shared.PreToolUseInput{
+		HookInput: shared.HookInput{
+			SessionID: "abc123",
+			CWD:       projectPath,
+		},
+		ToolName: "Task",
+		ToolInput: map[string]interface{}{
+			"prompt":        "Create execution plan",
+			"subagent_type": "Plan",
+		},
+	}
+
+	// Act
+	output, err := handler.Handle(input)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+	modifiedPrompt := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+
+	// Should contain Plan context
+	assert.Contains(t, modifiedPrompt, "## PLAN AGENT ENHANCEMENTS")
+
+	// Should contain detected TypeScript stack skills
+	assert.Contains(t, modifiedPrompt, "### Detected Tech Stack Skills")
+	assert.Contains(t, modifiedPrompt, "#### Typescript")
+}
+
+func TestHandler_PlanAgent_MultipleStacks(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	// Create project with both go.mod and package.json
+	projectPath := "/workspace/project"
+	err = fs.MkdirAll(projectPath, 0755)
+	require.NoError(t, err)
+	afero.WriteFile(fs, projectPath+"/go.mod", []byte("module test"), 0644)
+	afero.WriteFile(fs, projectPath+"/package.json", []byte("{}"), 0644)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	input := &shared.PreToolUseInput{
+		HookInput: shared.HookInput{
+			SessionID: "abc123",
+			CWD:       projectPath,
+		},
+		ToolName: "Task",
+		ToolInput: map[string]interface{}{
+			"prompt":        "Create execution plan",
+			"subagent_type": "Plan",
+		},
+	}
+
+	// Act
+	output, err := handler.Handle(input)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+	modifiedPrompt := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+
+	// Should contain Plan context
+	assert.Contains(t, modifiedPrompt, "## PLAN AGENT ENHANCEMENTS")
+
+	// Should contain detected skills for both stacks
+	assert.Contains(t, modifiedPrompt, "### Detected Tech Stack Skills")
+	assert.Contains(t, modifiedPrompt, "#### Typescript")
+	assert.Contains(t, modifiedPrompt, "#### Go")
+}
+
+func TestHandler_PlanAgent_NoSessionContext(t *testing.T) {
+	// Arrange
+	fs := afero.NewMemMapFs()
+	env := shared.NewMockEnv()
+
+	// Create session folder with files
+	sessionPath := "/workspace/.claudex/sessions/test-session-abc123"
+	err := fs.MkdirAll(sessionPath, 0755)
+	require.NoError(t, err)
+
+	// Create session files that would normally be listed
+	afero.WriteFile(fs, sessionPath+"/research.md", []byte("content"), 0644)
+	afero.WriteFile(fs, sessionPath+"/plan.md", []byte("content"), 0644)
+
+	env.Set("CLAUDEX_SESSION_PATH", sessionPath)
+
+	logger := shared.NewLogger(fs, env, "test")
+	handler := NewHandler(fs, env, logger)
+
+	input := &shared.PreToolUseInput{
+		HookInput: shared.HookInput{
+			SessionID: "abc123",
+			CWD:       "/workspace/project",
+		},
+		ToolName: "Task",
+		ToolInput: map[string]interface{}{
+			"prompt":        "Create execution plan",
+			"subagent_type": "Plan",
+		},
+	}
+
+	// Act
+	output, err := handler.Handle(input)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, output.HookSpecificOutput.UpdatedInput)
+
+	modifiedPrompt := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
+
+	// Should NOT contain session context markers
+	assert.NotContains(t, modifiedPrompt, "## SESSION CONTEXT (CRITICAL)")
+	assert.NotContains(t, modifiedPrompt, "MANDATORY RULES")
+	assert.NotContains(t, modifiedPrompt, "### Session Folder Contents:")
+	assert.NotContains(t, modifiedPrompt, sessionPath)
+
+	// Should contain Plan-specific context
+	assert.Contains(t, modifiedPrompt, "## PLAN AGENT ENHANCEMENTS")
+}
