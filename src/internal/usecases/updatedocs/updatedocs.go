@@ -21,9 +21,9 @@ import (
 
 // UpdateDocsUseCase orchestrates the documentation update workflow
 type UpdateDocsUseCase struct {
-	fs   afero.Fs
-	cmd  commander.Commander
-	env  env.Environment
+	fs  afero.Fs
+	cmd commander.Commander
+	env env.Environment
 }
 
 // New creates a new UpdateDocsUseCase instance with the given dependencies

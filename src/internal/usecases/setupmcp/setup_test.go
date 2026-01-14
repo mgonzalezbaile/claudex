@@ -16,11 +16,11 @@ func TestShouldPrompt(t *testing.T) {
 	hasNpx := npxErr == nil
 
 	tests := []struct {
-		name            string
-		setupConfig     *mcpconfig.ClaudeConfig
-		setupPrefs      *globalprefs.MCPPreferences
-		expectedResult  Result
-		skipIfNoNpx     bool
+		name           string
+		setupConfig    *mcpconfig.ClaudeConfig
+		setupPrefs     *globalprefs.MCPPreferences
+		expectedResult Result
+		skipIfNoNpx    bool
 	}{
 		{
 			name:           "should prompt when nothing configured",
@@ -96,9 +96,9 @@ func TestShouldPrompt(t *testing.T) {
 
 func TestInstall(t *testing.T) {
 	tests := []struct {
-		name          string
-		token         string
-		expectToken   bool
+		name        string
+		token       string
+		expectToken bool
 	}{
 		{
 			name:        "install without token",

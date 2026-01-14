@@ -188,7 +188,7 @@ func TestFileService_JSONRoundTrip(t *testing.T) {
 			},
 		},
 		{
-			name: "zero value",
+			name:  "zero value",
 			prefs: Preferences{},
 		},
 		{

@@ -241,4 +241,3 @@ func (a *App) showResumeSubmenu(sessionName, sessionPath string) (string, error)
 
 	return rsm.Choice, nil
 }
-
