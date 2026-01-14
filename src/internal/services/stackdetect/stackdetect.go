@@ -11,7 +11,7 @@ import (
 )
 
 // Detect detects technology stacks based on marker files (searches up to 3 levels deep).
-// It returns a list of detected stack identifiers such as "typescript", "go", "python", "PHP".
+// It returns a list of detected stack identifiers such as "typescript", "go", "python", "php".
 func Detect(fs afero.Fs, projectDir string) []string {
 	var stacks []string
 

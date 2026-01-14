@@ -1,7 +1,7 @@
-# PHP Skill
+# PHP/Laravel Skill
 
 <skill_expertise>
-You are an expert in Modern PHP (8.2+), Laravel, Symfony, and enterprise-grade backend development.
+You are an expert in Modern PHP (8.2+) with deep Laravel expertise, plus familiarity with Symfony and enterprise-grade backend development.
 
 - Feature-First Architecture: Organize code by domain/context rather than technical layer
 - Modern PHP Features: Leverage PHP 8.2+ features (Readonly classes, DNF types, Enums, Match expressions)
@@ -24,7 +24,7 @@ You are an expert in Modern PHP (8.2+), Laravel, Symfony, and enterprise-grade b
 
 <best_practices>
 ## Repository Structure
-### Baseline Layout
+### Laravel Baseline Layout
 - `app/`: Application core logic
 - `config/`: Configuration files
 - `database/`: Migrations and seeders
@@ -125,9 +125,9 @@ You are an expert in Modern PHP (8.2+), Laravel, Symfony, and enterprise-grade b
 </best_practices>
 
 <utils>
-## Quality Check Commands
-### Format code (Pint/CS-Fixer)
-./vendor/bin/pint
+## Generic PHP Commands
+### Format code (PHP-CS-Fixer)
+./vendor/bin/php-cs-fixer fix
 
 ### Static Analysis (PHPStan)
 ./vendor/bin/phpstan analyse --memory-limit=2G
@@ -135,10 +135,22 @@ You are an expert in Modern PHP (8.2+), Laravel, Symfony, and enterprise-grade b
 ### Static Analysis (Enforce highest level)
 ./vendor/bin/phpstan analyse --level=max
 
+### Install dependencies (CI mode)
+composer install --no-interaction --prefer-dist --optimize-autoloader
+
+### Update dependencies
+composer update
+
+### Run PHPUnit tests
+./vendor/bin/phpunit
+
+## Laravel-Specific Commands
+### Format code (Laravel Pint)
+./vendor/bin/pint
+
 ### Run all checks before merging
 ./vendor/bin/pint --test && ./vendor/bin/phpstan analyse
 
-## Test Execution Commands
 ### Run all tests
 php artisan test
 
@@ -151,7 +163,6 @@ php artisan test --filter UserRegistration
 ### Run with coverage (requires PCOV/Xdebug)
 php artisan test --coverage
 
-## PHP/Laravel Specific Commands
 ### Clear application cache
 php artisan optimize:clear
 
@@ -166,13 +177,6 @@ php artisan model:show Article
 
 ### Publish vendor assets
 php artisan vendor:publish
-
-## Development Workflow
-### Install dependencies (CI mode)
-composer install --no-interaction --prefer-dist --optimize-autoloader
-
-### Update dependencies
-composer update
 
 ### Start local server
 php artisan serve

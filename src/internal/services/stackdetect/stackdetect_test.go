@@ -56,7 +56,7 @@ func Test_Detect(t *testing.T) {
 		},
 		{
 			name:       "PHP via index.php",
-			files:      map[string]string{"composer.json": "<?php echo 'Hello world!'; ?>"},
+			files:      map[string]string{"index.php": "<?php echo 'Hello world!'; ?>"},
 			wantStacks: []string{"php"},
 		},
 		{
