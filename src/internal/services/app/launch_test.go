@@ -613,9 +613,9 @@ func TestSetEnvironment_EnvVarOverridesConfig(t *testing.T) {
 
 	cfg := &config.Config{
 		Features: config.Features{
-			AutodocSessionProgress: true,  // Config says true
-			AutodocSessionEnd:      true,  // Config says true
-			AutodocFrequency:       5,     // Config says 5
+			AutodocSessionProgress: true, // Config says true
+			AutodocSessionEnd:      true, // Config says true
+			AutodocFrequency:       5,    // Config says 5
 		},
 	}
 
@@ -642,8 +642,8 @@ func TestSetEnvironment_PartialEnvVarOverride(t *testing.T) {
 
 	// Only override one env var
 	os.Setenv("CLAUDEX_AUTODOC_SESSION_PROGRESS", "false")
-	os.Unsetenv("CLAUDEX_AUTODOC_SESSION_END")     // Not set
-	os.Unsetenv("CLAUDEX_AUTODOC_FREQUENCY")       // Not set
+	os.Unsetenv("CLAUDEX_AUTODOC_SESSION_END") // Not set
+	os.Unsetenv("CLAUDEX_AUTODOC_FREQUENCY")   // Not set
 
 	h := testutil.NewTestHarness()
 	projectDir := "/project"

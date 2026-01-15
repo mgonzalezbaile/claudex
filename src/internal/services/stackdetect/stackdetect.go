@@ -1,5 +1,5 @@
 // Package stackdetect provides technology stack detection for projects.
-// It identifies project technologies (TypeScript, Go, Python) by scanning
+// It identifies project technologies (TypeScript, Go, Python, PHP) by scanning
 // for marker files like tsconfig.json, go.mod, pyproject.toml, etc.
 package stackdetect
 
@@ -11,7 +11,7 @@ import (
 )
 
 // Detect detects technology stacks based on marker files (searches up to 3 levels deep).
-// It returns a list of detected stack identifiers such as "typescript", "go", "python".
+// It returns a list of detected stack identifiers such as "typescript", "go", "python", "php".
 func Detect(fs afero.Fs, projectDir string) []string {
 	var stacks []string
 
@@ -40,6 +40,13 @@ func Detect(fs afero.Fs, projectDir string) []string {
 		FindFile(fs, projectDir, "setup.py", 3) ||
 		FindFile(fs, projectDir, "Pipfile", 3) {
 		stacks = append(stacks, "python")
+	}
+
+	// PHP detection
+	if FindFile(fs, projectDir, "composer.json", 3) ||
+		FindFile(fs, projectDir, "index.php", 3) ||
+		FindFile(fs, projectDir, "artisan", 3) {
+		stacks = append(stacks, "php")
 	}
 
 	return stacks

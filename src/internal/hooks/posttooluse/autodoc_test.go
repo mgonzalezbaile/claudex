@@ -39,7 +39,7 @@ func TestAutoDocHandler_UsesAbsoluteTemplatePath(t *testing.T) {
 	// Handler increments first, so 4 -> 5 will reach threshold
 	sessionPath := "/Users/test/.claudex/sessions/test-session-abc"
 	h.CreateSessionWithFiles(sessionPath, map[string]string{
-		".doc-update-counter":        "4", // Will increment to 5 and trigger (frequency=5)
+		".doc-update-counter":           "4", // Will increment to 5 and trigger (frequency=5)
 		".last-processed-line-overview": "0",
 	})
 
@@ -95,11 +95,11 @@ func TestAutoDocHandler_PopulatesSessionContext(t *testing.T) {
 	// Handler increments first, so 4 -> 5 will reach threshold
 	sessionPath := "/Users/test/.claudex/sessions/test-session-xyz"
 	h.CreateSessionWithFiles(sessionPath, map[string]string{
-		".doc-update-counter":        "4", // Will increment to 5 and trigger (frequency=5)
+		".doc-update-counter":           "4", // Will increment to 5 and trigger (frequency=5)
 		".last-processed-line-overview": "0",
-		"session-overview.md":          "# Session Overview\nCurrent progress...",
-		"research-notes.md":            "# Research\nSome findings...",
-		"implementation-plan.md":       "# Plan\nSteps to take...",
+		"session-overview.md":           "# Session Overview\nCurrent progress...",
+		"research-notes.md":             "# Research\nSome findings...",
+		"implementation-plan.md":        "# Plan\nSteps to take...",
 	})
 
 	// Create .claude directory structure for findProjectRoot to work

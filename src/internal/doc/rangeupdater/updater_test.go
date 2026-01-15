@@ -82,7 +82,7 @@ func (m *mockFile) Write(p []byte) (n int, err error)             { return len(p
 func (m *mockFile) WriteAt(p []byte, off int64) (n int, err error) {
 	return len(p), nil
 }
-func (m *mockFile) Name() string                { return "mockfile" }
+func (m *mockFile) Name() string { return "mockfile" }
 func (m *mockFile) Readdir(count int) ([]os.FileInfo, error) {
 	return nil, nil
 }

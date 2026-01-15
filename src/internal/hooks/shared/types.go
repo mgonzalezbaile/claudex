@@ -25,7 +25,7 @@ type PostToolUseInput struct {
 	HookInput
 	ToolName     string                 `json:"tool_name"`
 	ToolInput    map[string]interface{} `json:"tool_input"`
-	ToolResponse interface{} `json:"tool_response"`
+	ToolResponse interface{}            `json:"tool_response"`
 	ToolUseID    string                 `json:"tool_use_id"`
 	Status       string                 `json:"status"`
 	AgentID      string                 `json:"agent_id,omitempty"`
@@ -47,9 +47,9 @@ type SessionEndInput struct {
 // SubagentStopInput extends HookInput for SubagentStop events
 type SubagentStopInput struct {
 	HookInput
-	AgentID              string `json:"agent_id"`
-	AgentTranscriptPath  string `json:"agent_transcript_path"`
-	CompletionReason     string `json:"completion_reason,omitempty"`
+	AgentID             string `json:"agent_id"`
+	AgentTranscriptPath string `json:"agent_transcript_path"`
+	CompletionReason    string `json:"completion_reason,omitempty"`
 }
 
 // HookOutput represents the response structure for all hooks

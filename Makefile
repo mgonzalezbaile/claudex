@@ -1,4 +1,4 @@
-.PHONY: all build clean install install-project uninstall help test run deps
+.PHONY: all build clean install install-project uninstall help test run deps fmt vet check
 
 # Configuration
 SRC_DIR = src
@@ -7,7 +7,7 @@ BIN_DIR = $(HOME)/.local/bin
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
 # Default target
-all: build
+all: help
 
 # Build the executable
 build:
@@ -32,6 +32,22 @@ test:
 	@echo "Running tests..."
 	@cd $(SRC_DIR) && go test -v ./...
 	@echo "✓ Tests complete"
+
+# Format code
+fmt:
+	@echo "Formatting code..."
+	@cd $(SRC_DIR) && go fmt ./...
+	@echo "✓ Formatting complete"
+
+# Vet code
+vet:
+	@echo "Vetting code..."
+	@cd $(SRC_DIR) && go vet ./...
+	@echo "✓ Vet complete"
+
+# Run all checks (fmt, vet, test) - use before submitting PRs
+check: fmt vet test
+	@echo "✓ All checks passed"
 
 # Install hooks (binary + proxies)
 install-hooks: build-hooks
@@ -153,11 +169,14 @@ npm-clean:
 # Show help
 help:
 	@echo "Available targets:"
-	@echo "  make all             - Build the executable (default)"
+	@echo "  make all             - Show this help (default)"
 	@echo "  make build           - Build claudex"
 	@echo "  make build-hooks     - Build claudex-hooks binary"
 	@echo "  make deps            - Install/update dependencies"
 	@echo "  make test            - Run tests"
+	@echo "  make fmt             - Format code with go fmt"
+	@echo "  make vet             - Run go vet"
+	@echo "  make check           - Run fmt, vet, and test (pre-PR validation)"
 	@echo "  make install         - Install claudex and hooks to ~/.local/bin and ~/.config/claudex"
 	@echo "  make install-hooks   - Install only hooks binary and proxies"
 	@echo "  make install-mcp     - Configure recommended MCP servers (sequential-thinking, context7)"

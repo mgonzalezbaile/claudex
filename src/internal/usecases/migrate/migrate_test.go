@@ -318,11 +318,11 @@ func TestRun_MigrateLegacySessions_WithNestedContent(t *testing.T) {
 
 	// Create multiple files in various locations
 	files := map[string]string{
-		paths.LegacySessionsDir + "/root.json":                         `{"session": "root"}`,
-		paths.LegacySessionsDir + "/2024/01/jan-session.json":          `{"session": "january"}`,
-		paths.LegacySessionsDir + "/2024/02/feb-session.json":          `{"session": "february"}`,
-		paths.LegacySessionsDir + "/2024/02/subfolder/nested.json":     `{"session": "nested"}`,
-		paths.LegacySessionsDir + "/archived/old-session.json":         `{"session": "archived"}`,
+		paths.LegacySessionsDir + "/root.json":                     `{"session": "root"}`,
+		paths.LegacySessionsDir + "/2024/01/jan-session.json":      `{"session": "january"}`,
+		paths.LegacySessionsDir + "/2024/02/feb-session.json":      `{"session": "february"}`,
+		paths.LegacySessionsDir + "/2024/02/subfolder/nested.json": `{"session": "nested"}`,
+		paths.LegacySessionsDir + "/archived/old-session.json":     `{"session": "archived"}`,
 	}
 
 	for path, content := range files {
@@ -363,10 +363,10 @@ func TestRun_MigrateLegacyLogs_WithMultipleFiles(t *testing.T) {
 
 	// Create multiple log files
 	logFiles := map[string]string{
-		paths.LegacyLogsDir + "/app.log":       "2024-01-01 INFO Application started\n",
-		paths.LegacyLogsDir + "/error.log":     "2024-01-01 ERROR Something went wrong\n",
-		paths.LegacyLogsDir + "/access.log":    "2024-01-01 GET /api/status 200\n",
-		paths.LegacyLogsDir + "/debug.log":     "2024-01-01 DEBUG Verbose information\n",
+		paths.LegacyLogsDir + "/app.log":    "2024-01-01 INFO Application started\n",
+		paths.LegacyLogsDir + "/error.log":  "2024-01-01 ERROR Something went wrong\n",
+		paths.LegacyLogsDir + "/access.log": "2024-01-01 GET /api/status 200\n",
+		paths.LegacyLogsDir + "/debug.log":  "2024-01-01 DEBUG Verbose information\n",
 	}
 
 	for path, content := range logFiles {
@@ -594,9 +594,9 @@ func TestCopyAndRemoveDirectory(t *testing.T) {
 	require.NoError(t, err)
 
 	files := map[string]string{
-		sourceDir + "/file1.txt":            "content1",
-		sourceDir + "/file2.txt":            "content2",
-		sourceDir + "/subdir/nested.txt":    "nested content",
+		sourceDir + "/file1.txt":         "content1",
+		sourceDir + "/file2.txt":         "content2",
+		sourceDir + "/subdir/nested.txt": "nested content",
 	}
 
 	for path, content := range files {
@@ -670,12 +670,12 @@ func TestCopyAndRemoveDirectory_PreservesDirectoryStructure(t *testing.T) {
 
 	// Add files at various levels
 	files := map[string]string{
-		sourceDir + "/root.txt":                            "root",
-		sourceDir + "/level1/first.txt":                    "first",
-		sourceDir + "/level1/level2/second.txt":            "second",
-		sourceDir + "/level1/level2/level3/third.txt":      "third",
-		sourceDir + "/another_branch/branch.txt":           "branch",
-		sourceDir + "/another_branch/deep/deep.txt":        "deep",
+		sourceDir + "/root.txt":                       "root",
+		sourceDir + "/level1/first.txt":               "first",
+		sourceDir + "/level1/level2/second.txt":       "second",
+		sourceDir + "/level1/level2/level3/third.txt": "third",
+		sourceDir + "/another_branch/branch.txt":      "branch",
+		sourceDir + "/another_branch/deep/deep.txt":   "deep",
 	}
 
 	for path, content := range files {

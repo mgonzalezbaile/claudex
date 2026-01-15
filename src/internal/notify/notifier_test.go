@@ -105,10 +105,10 @@ func TestNew_NonMacOS(t *testing.T) {
 
 func TestGetNotificationConfig(t *testing.T) {
 	tests := []struct {
-		name               string
-		notificationType   string
-		expectedTitle      string
-		expectedSound      string
+		name             string
+		notificationType string
+		expectedTitle    string
+		expectedSound    string
 	}{
 		{
 			name:             "permission_prompt",

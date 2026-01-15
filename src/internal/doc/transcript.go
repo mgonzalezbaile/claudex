@@ -15,17 +15,17 @@ import (
 
 // TranscriptEntry represents a parsed line from JSONL transcript
 type TranscriptEntry struct {
-	Type      string   `json:"type"`       // "assistant_message" or "agent_result"
-	Timestamp string   `json:"timestamp"`  // ISO 8601 timestamp
+	Type      string   `json:"type"`      // "assistant_message" or "agent_result"
+	Timestamp string   `json:"timestamp"` // ISO 8601 timestamp
 	AgentID   string   `json:"agentId,omitempty"`
-	Content   []string `json:"content"`    // Text content extracted
+	Content   []string `json:"content"` // Text content extracted
 }
 
 // rawTranscriptLine represents the raw JSONL structure we're parsing
 type rawTranscriptLine struct {
-	Type      string          `json:"type"`
-	Timestamp string          `json:"timestamp"`
-	Message   *rawMessage     `json:"message,omitempty"`
+	Type          string            `json:"type"`
+	Timestamp     string            `json:"timestamp"`
+	Message       *rawMessage       `json:"message,omitempty"`
 	ToolUseResult *rawToolUseResult `json:"toolUseResult,omitempty"`
 }
 

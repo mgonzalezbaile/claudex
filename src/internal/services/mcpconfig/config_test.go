@@ -186,10 +186,10 @@ func TestConfigure(t *testing.T) {
 
 func TestGetContext7MCP(t *testing.T) {
 	tests := []struct {
-		name          string
-		token         string
-		expectToken   bool
-		expectedArgs  int
+		name         string
+		token        string
+		expectToken  bool
+		expectedArgs int
 	}{
 		{
 			name:         "without token",

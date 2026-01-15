@@ -59,13 +59,22 @@ git clone https://github.com/YOUR_USERNAME/claudex.git
 cd claudex
 
 # Install dependencies
-go mod download
+go -C src mod download
 
 # Run tests
-go test ./...
+go -C src test ./...
 
 # Build the binary
-go build -o claudex ./cmd/claudex
+go -C src build -o ../claudex ./cmd/claudex
+```
+
+Or use the Makefile targets:
+
+```bash
+make deps    # Install dependencies
+make test    # Run tests
+make build   # Build the binary
+make check   # Run fmt, vet, and test (recommended before PRs)
 ```
 
 ## Questions?
