@@ -122,7 +122,7 @@ parameters:
 ```
 
 ## Laravel Project Structure (Domain-Driven)
-```
+```text
 app/
 ├── Domain/
 │   ├── Invoicing/

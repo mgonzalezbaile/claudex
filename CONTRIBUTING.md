@@ -77,6 +77,26 @@ make build   # Build the binary
 make check   # Run fmt, vet, and test (recommended before PRs)
 ```
 
+## Troubleshooting
+
+### Go Version Mismatch
+
+If you encounter an error like:
+
+```
+go: go.mod requires go >= 1.24.0 (running go 1.23.9; GOTOOLCHAIN=local)
+```
+
+You can use the auto toolchain to let Go download the required version automatically:
+
+```bash
+export GOTOOLCHAIN=auto
+export GOPATH=/tmp/gopath
+export GOMODCACHE=/tmp/gopath/pkg/mod
+```
+
+Then run your build or test commands. This workaround is useful when you cannot upgrade your system Go installation or have permission issues with the default module cache location.
+
 ## Questions?
 
 If you have questions about contributing, feel free to open an issue for discussion.

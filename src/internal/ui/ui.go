@@ -4,10 +4,8 @@
 package ui
 
 import (
-	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -16,7 +14,47 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/chzyer/readline"
 )
+
+// InputReader abstracts input reading for testability.
+type InputReader interface {
+	Readline() (string, error)
+	Close() error
+}
+
+// ReadlineReader wraps readline.Instance to implement InputReader.
+type ReadlineReader struct {
+	instance *readline.Instance
+}
+
+// NewReadlineReader creates a new readline-based input reader with the given prompt.
+func NewReadlineReader(prompt string) (InputReader, error) {
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:            prompt,
+		InterruptPrompt:   "^C",
+		EOFPrompt:         "exit",
+		HistorySearchFold: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &ReadlineReader{instance: rl}, nil
+}
+
+// Readline reads a line of input and returns it trimmed.
+func (r *ReadlineReader) Readline() (string, error) {
+	line, err := r.instance.Readline()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(line), nil
+}
+
+// Close closes the readline instance.
+func (r *ReadlineReader) Close() error {
+	return r.instance.Close()
+}
 
 // Styles
 var (
@@ -231,10 +269,12 @@ func TitleStyle() lipgloss.Style {
 // UI Functions for Session Flow
 // These functions handle pure UI concerns - rendering prompts, collecting input, displaying results
 
-// PromptDescription shows a prompt screen and collects user input
-// Parameters: title (e.g., "Create New Session" or "Fork Session"), originalSession (optional, for fork context)
+// PromptDescriptionWithReader shows a prompt screen and collects user input using the provided reader.
+// Parameters: title (e.g., "Create New Session" or "Fork Session"), originalSession (optional, for fork context), reader (InputReader interface)
 // Returns: description string, error
-func PromptDescription(title string, originalSession string) (string, error) {
+func PromptDescriptionWithReader(title string, originalSession string, reader InputReader) (string, error) {
+	defer reader.Close()
+
 	fmt.Print("\033[H\033[2J") // Clear screen
 	fmt.Println()
 	fmt.Printf("\033[1;36m %s \033[0m\n", title)
@@ -243,24 +283,34 @@ func PromptDescription(title string, originalSession string) (string, error) {
 	}
 	fmt.Println()
 
-	promptText := "  Description: "
-	if originalSession != "" {
-		promptText = "  Description for fork: "
-	}
-	fmt.Print(promptText)
-
-	reader := bufio.NewReader(os.Stdin)
-	description, err := reader.ReadString('\n')
+	description, err := reader.Readline()
 	if err != nil {
 		return "", err
 	}
-	description = strings.TrimSpace(description)
 
+	description = strings.TrimSpace(description)
 	if description == "" {
 		return "", fmt.Errorf("description cannot be empty")
 	}
 
 	return description, nil
+}
+
+// PromptDescription shows a prompt screen and collects user input.
+// Parameters: title (e.g., "Create New Session" or "Fork Session"), originalSession (optional, for fork context)
+// Returns: description string, error
+func PromptDescription(title string, originalSession string) (string, error) {
+	promptText := "  Description: "
+	if originalSession != "" {
+		promptText = "  Description for fork: "
+	}
+
+	reader, err := NewReadlineReader(promptText)
+	if err != nil {
+		return "", err
+	}
+
+	return PromptDescriptionWithReader(title, originalSession, reader)
 }
 
 // ShowGenerating displays "Generating session name..." message
