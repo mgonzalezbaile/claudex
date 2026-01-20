@@ -87,9 +87,8 @@ func (a *App) launchNew(si SessionInfo) error {
 	// Small delay before launching
 	time.Sleep(300 * time.Millisecond)
 
-	// Construct relative session path for activation command
-	relativeSessionPath := filepath.Join(".claudex", "sessions", filepath.Base(si.Path))
-	activationPrompt := fmt.Sprintf("/agents:team-lead activate in session %s", relativeSessionPath)
+	// Use absolute session path for activation command
+	activationPrompt := fmt.Sprintf("/agents:team-lead activate in session %s", si.Path)
 	if len(a.docPaths) > 0 {
 		activationPrompt += "\n\nIMPORTANT - Required Documentation:\nBefore proceeding, you MUST read these documentation files:"
 		for _, docPath := range a.docPaths {
@@ -125,8 +124,7 @@ func (a *App) launchFork(si SessionInfo) error {
 	time.Sleep(300 * time.Millisecond)
 
 	// For fork, start a new session with activation command
-	relativeSessionPath := filepath.Join(".claudex", "sessions", filepath.Base(si.Path))
-	activationPrompt := fmt.Sprintf("/agents:team-lead activate in session %s", relativeSessionPath)
+	activationPrompt := fmt.Sprintf("/agents:team-lead activate in session %s", si.Path)
 	if len(a.docPaths) > 0 {
 		activationPrompt += "\n\nIMPORTANT - Required Documentation:\nBefore proceeding, you MUST read these documentation files:"
 		for _, docPath := range a.docPaths {
@@ -148,8 +146,7 @@ func (a *App) launchFresh(si SessionInfo) error {
 	time.Sleep(300 * time.Millisecond)
 
 	// For fresh, start a new session with activation command
-	relativeSessionPath := filepath.Join(".claudex", "sessions", filepath.Base(si.Path))
-	activationPrompt := fmt.Sprintf("/agents:team-lead activate in session %s", relativeSessionPath)
+	activationPrompt := fmt.Sprintf("/agents:team-lead activate in session %s", si.Path)
 	if len(a.docPaths) > 0 {
 		activationPrompt += "\n\nIMPORTANT - Required Documentation:\nBefore proceeding, you MUST read these documentation files:"
 		for _, docPath := range a.docPaths {
