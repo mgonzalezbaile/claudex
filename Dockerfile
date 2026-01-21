@@ -1,5 +1,12 @@
+# Build arguments
+ARG GO_VERSION=1.24
+ARG NODE_VERSION=22
+ARG VERSION=docker
+
 # Stage 1: Build Go binaries
-FROM golang:1.24-alpine AS builder
+FROM golang:${GO_VERSION}-alpine AS builder
+
+ARG VERSION
 
 WORKDIR /build
 
@@ -15,13 +22,13 @@ COPY src/ ./
 # Build claudex and claudex-hooks with static linking
 # Let Go use the container's native architecture
 RUN CGO_ENABLED=0 go build \
-    -ldflags "-X main.Version=docker" \
+    -ldflags "-X main.Version=${VERSION}" \
     -o claudex ./cmd/claudex && \
     CGO_ENABLED=0 go build \
     -o claudex-hooks ./cmd/claudex-hooks
 
 # Stage 2: Runtime image
-FROM node:22-alpine
+FROM node:${NODE_VERSION}-alpine
 
 WORKDIR /workspace
 

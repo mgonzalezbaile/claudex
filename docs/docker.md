@@ -334,7 +334,7 @@ ls -la .claudex/sessions
    ```
 
 3. Add additional patterns to `.dockerignore`:
-   ```
+   ```text
    .git
    .claudex/sessions
    node_modules

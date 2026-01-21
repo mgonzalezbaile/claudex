@@ -193,11 +193,12 @@ npm-clean:
 # Docker targets
 docker-build:
 	@echo "Building claudex Docker image..."
-	docker build -t claudex:$(VERSION) -t claudex:latest .
+	docker build --build-arg VERSION=$(VERSION) -t claudex:$(VERSION) -t claudex:latest .
 	@echo "✓ Built: claudex:$(VERSION)"
 
 docker-run:
 	@echo "Running claudex in Docker..."
+	@mkdir -p $(CURDIR)/.claudex/sessions
 	docker run -it --rm \
 		-v $(CURDIR):/workspace \
 		-v $(CURDIR)/.claudex/sessions:/workspace/.claudex/sessions \
