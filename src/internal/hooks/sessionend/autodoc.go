@@ -2,6 +2,7 @@ package sessionend
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"claudex/internal/doc"
 	"claudex/internal/hooks/shared"
@@ -57,13 +58,23 @@ func (h *Handler) Handle(input *shared.SessionEndInput) error {
 		startLine = 0 // Start from beginning if we can't read the marker
 	}
 
+	// Find project root to build absolute template path
+	projectRoot, err := h.findProjectRoot(sessionPath)
+	if err != nil {
+		_ = h.logger.LogError(fmt.Errorf("failed to find project root: %w", err))
+		return nil
+	}
+
+	// Build absolute path to template
+	templatePath := filepath.Join(projectRoot, ".claude", "hooks", "prompts", "session-overview-documenter.md")
+
 	// Trigger documentation update (background, non-blocking)
 	// This is the final update, so we always run it
 	config := doc.UpdaterConfig{
 		SessionPath:    sessionPath,
 		TranscriptPath: input.TranscriptPath,
 		OutputFile:     "session-overview.md",
-		PromptTemplate: "session-overview-documenter.md",
+		PromptTemplate: templatePath,
 		Model:          "haiku",
 		StartLine:      startLine + 1, // Start from next line (1-indexed)
 	}
@@ -74,4 +85,23 @@ func (h *Handler) Handle(input *shared.SessionEndInput) error {
 	}
 
 	return nil
+}
+
+// findProjectRoot walks up from sessionPath to find the project root (where .claude directory exists)
+func (h *Handler) findProjectRoot(sessionPath string) (string, error) {
+	current := sessionPath
+	for {
+		claudeDir := filepath.Join(current, ".claude")
+		exists, err := afero.DirExists(h.fs, claudeDir)
+		if err == nil && exists {
+			return current, nil
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			// Reached filesystem root
+			return "", fmt.Errorf("could not find .claude directory in any parent of %s", sessionPath)
+		}
+		current = parent
+	}
 }
