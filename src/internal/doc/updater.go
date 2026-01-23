@@ -2,9 +2,11 @@ package doc
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 
 	"claudex/internal/services/commander"
 	"claudex/internal/services/env"
@@ -39,21 +41,89 @@ func NewUpdater(fs afero.Fs, cmd commander.Commander, env env.Environment) *Upda
 	}
 }
 
-// RunBackground starts doc update in background goroutine
-// Returns immediately, update happens asynchronously
+// RunBackground starts doc update as a detached subprocess
+// Returns immediately, update happens asynchronously in a separate process
+// that survives the parent process exit
 func (u *Updater) RunBackground(config UpdaterConfig) error {
 	// Validate configuration
 	if err := u.validateConfig(config); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Launch background goroutine
+	// Prepare input JSON for the subprocess
+	input := docUpdateInput{
+		SessionPath:    config.SessionPath,
+		TranscriptPath: config.TranscriptPath,
+		OutputFile:     config.OutputFile,
+		PromptTemplate: config.PromptTemplate,
+		SessionContext: config.SessionContext,
+		Model:          config.Model,
+		StartLine:      config.StartLine,
+	}
+
+	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		return fmt.Errorf("failed to marshal input: %w", err)
+	}
+
+	// Find the claudex-hooks binary
+	hooksBin := u.env.Get("CLAUDEX_HOOKS_BIN")
+	if hooksBin == "" {
+		hooksBin = "claudex-hooks"
+	}
+
+	// Create command for the detached subprocess
+	cmd := exec.Command(hooksBin, "doc-update")
+
+	// Set up stdin pipe to pass the config
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+
+	// Inherit environment (recursion guard will be set by invokeClaude, not here)
+	cmd.Env = os.Environ()
+
+	// Detach the process so it survives parent exit
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true, // Create new process group
+	}
+
+	// Discard stdout/stderr (subprocess logs to file via logger)
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+
+	// Start the subprocess (non-blocking)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start doc-update subprocess: %w", err)
+	}
+
+	// Write input synchronously and close stdin
+	// This must complete before we return, otherwise the subprocess won't receive input
+	if _, err := stdin.Write(inputJSON); err != nil {
+		return fmt.Errorf("failed to write input to subprocess: %w", err)
+	}
+	stdin.Close()
+
+	// Don't wait for the subprocess - let it run independently
+	// The process will be orphaned and adopted by init/launchd
 	go func() {
-		// Errors in background processing are logged but don't propagate
-		_ = u.Run(config)
+		_ = cmd.Wait() // Reap the zombie when done
 	}()
 
 	return nil
+}
+
+// docUpdateInput matches the shared.DocUpdateInput structure
+// Defined here to avoid circular imports
+type docUpdateInput struct {
+	SessionPath    string `json:"session_path"`
+	TranscriptPath string `json:"transcript_path"`
+	OutputFile     string `json:"output_file"`
+	PromptTemplate string `json:"prompt_template"`
+	SessionContext string `json:"session_context"`
+	Model          string `json:"model"`
+	StartLine      int    `json:"start_line"`
 }
 
 // Run executes doc update synchronously (for testing)
@@ -138,7 +208,8 @@ func (u *Updater) invokeClaude(prompt string, model string) error {
 
 	// Create command with recursion guard via actual exec.Command
 	// We need to use exec.Command directly here to set custom environment
-	cmd := exec.Command("claude", "-p", prompt, "--model", model, "--output-format", "stream-json")
+	// Note: We don't use --output-format stream-json as it requires --verbose with -p
+	cmd := exec.Command("claude", "-p", prompt, "--model", model)
 
 	// Set environment with recursion guard
 	cmdEnv := os.Environ()

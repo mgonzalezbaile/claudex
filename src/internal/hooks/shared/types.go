@@ -52,6 +52,18 @@ type SubagentStopInput struct {
 	CompletionReason    string `json:"completion_reason,omitempty"`
 }
 
+// DocUpdateInput represents input for the doc-update command
+// This is used to pass configuration to the detached subprocess
+type DocUpdateInput struct {
+	SessionPath    string `json:"session_path"`
+	TranscriptPath string `json:"transcript_path"`
+	OutputFile     string `json:"output_file"`
+	PromptTemplate string `json:"prompt_template"`
+	SessionContext string `json:"session_context"`
+	Model          string `json:"model"`
+	StartLine      int    `json:"start_line"`
+}
+
 // HookOutput represents the response structure for all hooks
 type HookOutput struct {
 	HookSpecificOutput HookSpecificOutput `json:"hookSpecificOutput"`
