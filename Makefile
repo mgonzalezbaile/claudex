@@ -1,4 +1,4 @@
-.PHONY: all build clean install install-project uninstall help test run deps fmt vet check
+.PHONY: all build clean install install-project uninstall help test run deps fmt vet check docker-build docker-run docker-clean
 
 # Configuration
 SRC_DIR = src
@@ -21,11 +21,19 @@ build-hooks:
 	@cd $(SRC_DIR) && go build -o ../bin/claudex-hooks ./cmd/claudex-hooks
 	@echo "✓ Built: bin/claudex-hooks"
 
+# Build binaries using temporary go paths
+build-temp:
+	GOTOOLCHAIN=auto GOPATH=/tmp/gopath GOMODCACHE=/tmp/gopath/pkg/mod make build build-hooks
+
 # Install dependencies
 deps:
 	@echo "Installing dependencies..."
 	@cd $(SRC_DIR) && go mod tidy
 	@echo "✓ Dependencies installed"
+
+# Install dependencies using temporary go paths
+deps-temp:
+	GOTOOLCHAIN=auto GOPATH=/tmp/gopath GOMODCACHE=/tmp/gopath/pkg/mod make deps
 
 # Run tests
 test:
@@ -33,11 +41,19 @@ test:
 	@cd $(SRC_DIR) && go test -v ./...
 	@echo "✓ Tests complete"
 
+# Run tests using temporary go paths
+test-temp:
+	GOTOOLCHAIN=auto GOPATH=/tmp/gopath GOMODCACHE=/tmp/gopath/pkg/mod make test
+
 # Format code
 fmt:
 	@echo "Formatting code..."
 	@cd $(SRC_DIR) && go fmt ./...
 	@echo "✓ Formatting complete"
+
+# Format code using temporary go paths
+fmt-temp:
+	GOTOOLCHAIN=auto GOPATH=/tmp/gopath GOMODCACHE=/tmp/gopath/pkg/mod make fmt
 
 # Vet code
 vet:
@@ -45,9 +61,17 @@ vet:
 	@cd $(SRC_DIR) && go vet ./...
 	@echo "✓ Vet complete"
 
+# Vet code using temporary go paths
+vet-temp:
+	GOTOOLCHAIN=auto GOPATH=/tmp/gopath GOMODCACHE=/tmp/gopath/pkg/mod make vet
+
 # Run all checks (fmt, vet, test) - use before submitting PRs
 check: fmt vet test
 	@echo "✓ All checks passed"
+
+# Run all checks (fmt, vet, test) using temporary go paths
+check-temp:
+	GOTOOLCHAIN=auto GOPATH=/tmp/gopath GOMODCACHE=/tmp/gopath/pkg/mod make check
 
 # Install hooks (binary + proxies)
 install-hooks: build-hooks
@@ -166,17 +190,43 @@ npm-clean:
 	rm -rf dist/
 	rm -rf npm/@claudex/*/bin/*
 
+# Docker targets
+docker-build:
+	@echo "Building claudex Docker image..."
+	docker build --build-arg VERSION=$(VERSION) -t claudex:$(VERSION) -t claudex:latest .
+	@echo "✓ Built: claudex:$(VERSION)"
+
+docker-run:
+	@echo "Running claudex in Docker..."
+	@mkdir -p $(CURDIR)/.claudex/sessions
+	docker run -it --rm \
+		-v $(CURDIR):/workspace \
+		-v $(CURDIR)/.claudex/sessions:/workspace/.claudex/sessions \
+		-v $(HOME)/.config/claude:/home/node/.config/claude:ro \
+		claudex:latest
+
+docker-clean:
+	@echo "Removing claudex Docker images..."
+	docker rmi claudex:latest claudex:$(VERSION) 2>/dev/null || true
+	@echo "✓ Cleaned Docker images"
+
 # Show help
 help:
 	@echo "Available targets:"
 	@echo "  make all             - Show this help (default)"
 	@echo "  make build           - Build claudex"
 	@echo "  make build-hooks     - Build claudex-hooks binary"
+	@echo "  make build-temp      - Build binaries using temporary go paths"
 	@echo "  make deps            - Install/update dependencies"
+	@echo "  make deps-temp       - Install/update dependencies using temporary go paths"
 	@echo "  make test            - Run tests"
+	@echo "  make test-temp       - Run tests using temporary go paths"
 	@echo "  make fmt             - Format code with go fmt"
+	@echo "  make fmt-temp        - Format code with go fmt using temporary go paths"
 	@echo "  make vet             - Run go vet"
+	@echo "  make vet-temp        - Run go vet using temporary go paths"
 	@echo "  make check           - Run fmt, vet, and test (pre-PR validation)"
+	@echo "  make check-temp      - Run fmt, vet, and test (pre-PR validation) using temporary go paths"
 	@echo "  make install         - Install claudex and hooks to ~/.local/bin and ~/.config/claudex"
 	@echo "  make install-hooks   - Install only hooks binary and proxies"
 	@echo "  make install-mcp     - Configure recommended MCP servers (sequential-thinking, context7)"
@@ -189,4 +239,7 @@ help:
 	@echo "  make npm-sync-version - Sync version from version.txt to all package.json files"
 	@echo "  make npm-publish     - Build, sync versions, and publish to npm"
 	@echo "  make npm-clean       - Remove npm build artifacts"
+	@echo "  make docker-build    - Build claudex Docker image"
+	@echo "  make docker-run      - Run claudex in Docker container"
+	@echo "  make docker-clean    - Remove claudex Docker images"
 	@echo "  make help            - Show this help"

@@ -1,0 +1,22 @@
+services:
+  claudex:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: claudex:latest
+    container_name: claudex
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    volumes:
+      # Project files
+      - .:/workspace
+      # Session persistence (CRITICAL - sessions will be lost without this)
+      - ./.claudex/sessions:/workspace/.claudex/sessions
+      # Claude CLI authentication (read-only)
+      - ~/.config/claude:/home/node/.config/claude:ro
+    environment:
+      # Auto-documentation settings
+      - CLAUDEX_AUTODOC_SESSION_PROGRESS=${CLAUDEX_AUTODOC_SESSION_PROGRESS:-true}
+      - CLAUDEX_AUTODOC_SESSION_END=${CLAUDEX_AUTODOC_SESSION_END:-true}
+      - CLAUDEX_AUTODOC_FREQUENCY=${CLAUDEX_AUTODOC_FREQUENCY:-5}

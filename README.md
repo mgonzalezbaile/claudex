@@ -157,6 +157,35 @@ Add to your shell config if needed:
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+### Docker
+
+Run claudex in an isolated container with all dependencies included:
+
+```bash
+# Build the image
+make docker-build
+
+# Run interactively
+make docker-run
+```
+
+Or use Docker Compose:
+
+```bash
+docker compose run --rm claudex
+```
+
+**Prerequisites:**
+- Docker installed on your system
+- Claude CLI configured on host (`~/.config/claude`)
+
+**Volume Mounts:**
+- Project directory mounted at `/workspace`
+- Sessions persisted via `.claudex/sessions` mount
+- Claude CLI config mounted read-only
+
+For detailed configuration options, see [docs/docker.md](docs/docker.md).
+
 ## Usage
 
 Navigate to your project directory and run:

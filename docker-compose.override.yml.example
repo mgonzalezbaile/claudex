@@ -1,0 +1,78 @@
+# docker-compose.override.yml.example
+#
+# Copy this file to docker-compose.override.yml to customize your Docker setup.
+# Docker Compose automatically applies docker-compose.override.yml if it exists.
+#
+# Example: cp docker-compose.override.yml.example docker-compose.override.yml
+#
+# This file demonstrates common customization patterns for Claudex Docker usage.
+
+services:
+  claudex:
+    # --- BUILD CUSTOMIZATION ---
+    # Override build arguments (if needed)
+    # build:
+    #   args:
+    #     GO_VERSION: "1.24"
+    #     NODE_VERSION: "22"
+
+    # --- ENVIRONMENT VARIABLES ---
+    # Override or add environment variables
+    environment:
+      # Disable auto-documentation
+      # - CLAUDEX_SKIP_DOCS=true
+
+      # Change auto-doc frequency (default: 5)
+      # - CLAUDEX_AUTODOC_FREQUENCY=10
+
+      # Disable session progress docs
+      # - CLAUDEX_AUTODOC_SESSION_PROGRESS=false
+
+      # Disable session end docs
+      # - CLAUDEX_AUTODOC_SESSION_END=false
+
+      # Custom log level (if supported)
+      # - CLAUDEX_LOG_LEVEL=debug
+
+      # Timezone setting
+      # - TZ=America/New_York
+
+    # --- VOLUME MOUNTS ---
+    # Add additional volume mounts
+    volumes:
+      # Mount custom config file
+      # - ./my-custom-config.toml:/workspace/.claudex/config.toml:ro
+
+      # Mount SSH keys for git operations
+      # - ~/.ssh:/home/node/.ssh:ro
+
+      # Mount additional project directories
+      # - ../other-project:/other-project:ro
+
+      # Mount custom profiles directory
+      # - ./custom-profiles:/workspace/.claudex/profiles
+
+    # --- RESOURCE LIMITS ---
+    # Set container resource limits
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2.0'
+    #       memory: 2G
+    #     reservations:
+    #       cpus: '1.0'
+    #       memory: 512M
+
+    # --- NETWORKING ---
+    # Expose ports (if you add HTTP endpoints in future)
+    # ports:
+    #   - "8080:8080"
+
+    # --- USER OVERRIDE ---
+    # Run as a different user (match your host UID/GID)
+    # user: "1001:1001"
+
+    # --- COMMAND OVERRIDE ---
+    # Pass default arguments to claudex
+    # command: ["--help"]
+    # command: ["start", "--profile", "custom"]

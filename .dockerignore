@@ -1,0 +1,54 @@
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Session data (should be mounted at runtime)
+.claudex/sessions/
+.claudex/logs/
+
+# Build artifacts
+dist/
+bin/
+claudex
+claudex-hooks
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Dependencies
+node_modules/
+vendor/
+
+# Cache directories
+.cache/
+.npm/
+.yarn/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation (except what we need)
+*.md
+!README.md
+
+# Test files
+*_test.go
+testdata/
+
+# Temporary files
+*.log
+*.tmp
+tmp/
+
+# NPM packaging
+npm/
+
+# CI/CD
+.github/
