@@ -53,7 +53,7 @@ func TestHandler_NoSessionFolder(t *testing.T) {
 		ToolInput: map[string]interface{}{
 			"prompt":        "Do some work",
 			"description":   "Task description",
-			"subagent_type": "researcher",
+			"subagent_type": "general-purpose",
 		},
 	}
 
@@ -90,7 +90,7 @@ func TestHandler_EmptyPrompt(t *testing.T) {
 		ToolInput: map[string]interface{}{
 			"prompt":        "",
 			"description":   "Task description",
-			"subagent_type": "researcher",
+			"subagent_type": "general-purpose",
 		},
 	}
 
@@ -126,7 +126,7 @@ func TestHandler_MissingPrompt(t *testing.T) {
 		ToolName: "Task",
 		ToolInput: map[string]interface{}{
 			"description":   "Task description",
-			"subagent_type": "researcher",
+			"subagent_type": "general-purpose",
 		},
 	}
 
@@ -169,7 +169,7 @@ func TestHandler_SuccessfulInjection(t *testing.T) {
 		ToolInput: map[string]interface{}{
 			"prompt":        originalPrompt,
 			"description":   "Task description",
-			"subagent_type": "researcher",
+			"subagent_type": "general-purpose",
 		},
 	}
 
@@ -184,7 +184,7 @@ func TestHandler_SuccessfulInjection(t *testing.T) {
 
 	// Verify updated input contains all original fields
 	assert.Equal(t, "Task description", output.HookSpecificOutput.UpdatedInput["description"])
-	assert.Equal(t, "researcher", output.HookSpecificOutput.UpdatedInput["subagent_type"])
+	assert.Equal(t, "general-purpose", output.HookSpecificOutput.UpdatedInput["subagent_type"])
 
 	// Verify prompt was modified
 	modifiedPrompt, ok := output.HookSpecificOutput.UpdatedInput["prompt"].(string)
@@ -344,7 +344,7 @@ func TestHandler_PreservesAllToolInputFields(t *testing.T) {
 		ToolInput: map[string]interface{}{
 			"prompt":        "Original prompt",
 			"description":   "Task description",
-			"subagent_type": "researcher",
+			"subagent_type": "general-purpose",
 			"custom_field":  "custom_value",
 			"numeric_field": 42,
 		},
@@ -359,7 +359,7 @@ func TestHandler_PreservesAllToolInputFields(t *testing.T) {
 
 	// Verify all fields are preserved
 	assert.Equal(t, "Task description", output.HookSpecificOutput.UpdatedInput["description"])
-	assert.Equal(t, "researcher", output.HookSpecificOutput.UpdatedInput["subagent_type"])
+	assert.Equal(t, "general-purpose", output.HookSpecificOutput.UpdatedInput["subagent_type"])
 	assert.Equal(t, "custom_value", output.HookSpecificOutput.UpdatedInput["custom_field"])
 	assert.Equal(t, 42, output.HookSpecificOutput.UpdatedInput["numeric_field"])
 
@@ -765,8 +765,7 @@ func TestHandler_ExploreAgent_CaseInsensitive(t *testing.T) {
 		{"uppercase", "EXPLORE", true},
 		{"mixed case", "ExPlOrE", true},
 		{"proper case", "Explore", true},
-		{"researcher", "researcher", false},
-		{"architect", "Architect", false},
+		{"general-purpose", "general-purpose", false},
 	}
 
 	for _, tc := range testCases {
@@ -875,7 +874,7 @@ func TestHandler_NonExploreAgent_StillGetsSessionContext(t *testing.T) {
 		ToolName: "Task",
 		ToolInput: map[string]interface{}{
 			"prompt":        "Research the authentication pattern",
-			"subagent_type": "researcher",
+			"subagent_type": "general-purpose",
 		},
 	}
 
@@ -987,8 +986,7 @@ func TestHandler_PlanAgent_CaseInsensitive(t *testing.T) {
 		{"uppercase", "PLAN", true},
 		{"mixed case", "PlAn", true},
 		{"proper case", "Plan", true},
-		{"researcher", "researcher", false},
-		{"architect", "Architect", false},
+		{"general-purpose", "general-purpose", false},
 	}
 
 	for _, tc := range testCases {

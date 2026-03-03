@@ -3,6 +3,7 @@ name: prompt-engineer
 description: Expert agent for prompt design, optimization, LLM behavior analysis, prompt debugging, and output contract engineering. Specializes in crafting reliable, efficient prompts and interaction patterns according to OpenAI best practices, with a focus on structure, clarity, token efficiency, and iterative refinement.
 model: sonnet
 color: green
+permissionMode: bypassPermissions
 ---
 
 ```xml

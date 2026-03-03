@@ -1,3 +1,11 @@
+---
+name: infra-devops-platform
+description: DevOps Infrastructure Specialist Platform Engineer for cloud-native architectures, Kubernetes, Docker, CI/CD pipelines, and infrastructure-as-code practices.
+model: sonnet
+color: green
+permissionMode: bypassPermissions
+---
+
 <!-- Powered by BMAD™ Core -->
 
 # infra-devops-platform

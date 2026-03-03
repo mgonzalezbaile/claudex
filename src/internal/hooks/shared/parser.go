@@ -102,3 +102,30 @@ func (p *Parser) ParseSubagentStop() (*SubagentStopInput, error) {
 
 	return &input, nil
 }
+
+// ParseDocUpdate parses DocUpdate input from JSON
+func (p *Parser) ParseDocUpdate() (*DocUpdateInput, error) {
+	var input DocUpdateInput
+	if err := json.NewDecoder(p.reader).Decode(&input); err != nil {
+		return nil, fmt.Errorf("failed to parse DocUpdate input: %w", err)
+	}
+
+	// Validate required fields
+	if input.SessionPath == "" {
+		return nil, fmt.Errorf("session_path is required")
+	}
+	if input.TranscriptPath == "" {
+		return nil, fmt.Errorf("transcript_path is required")
+	}
+	if input.PromptTemplate == "" {
+		return nil, fmt.Errorf("prompt_template is required")
+	}
+	if input.Model == "" {
+		return nil, fmt.Errorf("model is required")
+	}
+	if input.StartLine < 1 {
+		return nil, fmt.Errorf("start_line must be >= 1")
+	}
+
+	return &input, nil
+}

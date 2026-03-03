@@ -101,9 +101,9 @@ A team-lead agent coordinates specialists through a structured workflow:
 ┌─────────────────────────────────────────────────────┐
 │  You describe what you need                         │
 │       ↓                                             │
-│  Researcher investigates codebase & docs            │
+│  Explore agent investigates codebase & docs         │
 │       ↓                                             │
-│  Architect creates execution plan with phases       │
+│  Plan agent creates execution plan with phases      │
 │       ↓                                             │
 │  Engineers execute in parallel:                     │
 │       ├── Track A: Auth service                     │
@@ -187,8 +187,6 @@ Claudex includes specialized agent profiles:
 | Profile | Purpose |
 |---------|---------|
 | `team-lead` | Strategic planning and orchestration |
-| `architect` | System design and architecture |
-| `researcher` | Deep analysis and investigation |
 | `principal-engineer-{stack}` | Implementation (TypeScript, Python, Go, PHP) |
 | `prompt-engineer` | Prompt design and optimization |
 

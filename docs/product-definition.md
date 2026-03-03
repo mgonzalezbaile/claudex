@@ -97,31 +97,25 @@ Claudex ships with a set of "Standard Agents" designed to work together:
     *   Delegates tasks to the best-skilled specialized agent.
     *   **Parallelization:** Maximizes efficiency by spawning multiple agents (e.g., Frontend + Backend) simultaneously.
 
-### 6.2. Architect
-*   **Role:** Researcher and Planner.
-*   **Responsibilities:**
-    *   Performs deep research and technical analysis.
-    *   Produces the **Execution Plan** that others will follow.
-
-### 6.3. Principal Software Engineer
+### 6.2. Principal Software Engineer
 *   **Role:** The Builder.
 *   **Responsibilities:**
-    *   Executes the plan provided by the Architect.
-  *   **Skill Injection:** Can be loaded with specific "Skill Mixins" (e.g., Python Expert, TypeScript Expert, Go Expert, PHP Expert) to match the project stack.
+    *   Executes the plan provided by the Plan agent.
+    *   **Skill Injection:** Can be loaded with specific "Skill Mixins" (e.g., Python Expert, TypeScript Expert, Go Expert, PHP Expert) to match the project stack.
 
-### 6.4. Principal AI/Prompt Engineer
+### 6.3. Principal AI/Prompt Engineer
 *   **Role:** AI & Evals Expert.
 *   **Responsibilities:**
     *   Specializes in prompt engineering and LLM evaluations ("evals").
     *   Optimizes agent interactions and system prompts.
 
-### 6.5. QA Engineer
+### 6.4. QA Engineer
 *   **Role:** Quality Assurance.
 *   **Responsibilities:**
     *   Validates implementation against requirements.
     *   Writes test cases and ensures coverage.
 
-### 6.6. Context Curator (Background Agent)
+### 6.5. Context Curator (Background Agent)
 *   **Role:** Documentation & Memory.
 *   **Behavior:** Triggered automatically via hooks (not manually invoked).
 *   **Responsibilities:**

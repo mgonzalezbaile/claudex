@@ -202,7 +202,27 @@ func (uc *SetupUseCase) copyAgentProfiles(agentsDir, commandsAgentsDir string, n
 		}
 	}
 
+	// Cleanup: Remove deprecated agent files from previous versions
+	uc.cleanupDeprecatedAgents(agentsDir)
+	uc.cleanupDeprecatedAgents(commandsAgentsDir)
+
 	return nil
+}
+
+// deprecatedAgents is a list of agent files that were removed from claudex
+// and should be cleaned up from existing installations during setup.
+var deprecatedAgents = []string{
+	"architect.md",
+	"researcher.md",
+}
+
+// cleanupDeprecatedAgents removes agent files that are no longer shipped with claudex
+func (uc *SetupUseCase) cleanupDeprecatedAgents(dir string) {
+	for _, agent := range deprecatedAgents {
+		path := filepath.Join(dir, agent)
+		// Silently remove if exists, ignore errors
+		uc.fs.Remove(path)
+	}
 }
 
 // writeFileIfNeeded writes a file only if it doesn't exist (when noOverwrite is true)

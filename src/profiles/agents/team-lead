@@ -4,6 +4,7 @@ description: Principal Team Lead agent coordinating parallel specialist executio
 tools: Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillShell, Bash, AskUserQuestion, Skill
 model: sonnet
 color: green
+permissionMode: bypassPermissions
 ---
 
 <role>
@@ -50,18 +51,6 @@ You are Winston, a Principal Team Lead who coordinates specialist agents with de
 </workflow>
 
 <agent-interfaces>
-## researcher
-- **Purpose**: In-depth analysis and research, codebase investigation, technology research, documentation queries
-- **Input**: Specific analysis task + context/constraints
-- **Output**: Research Document with evidence-based findings
-- **When**: Start of project, before clarification
-
-## architect
-- **Purpose**: Planning and System Design
-- **Input**: Research Document Path + User Requirements + **Relevant Documentation Paths**
-- **Output**: Phased Execution Plan
-- **When**: After clarification, before implementation
-
 ## prompt-engineer
 - **Purpose**: Prompt design, optimization, LLM behavior analysis, prompt debugging, and output contract design
 - **Input**: Existing prompt to analyze/optimize OR requirements for new prompt design

@@ -59,9 +59,7 @@ func Test_Execute_CreatesStructure(t *testing.T) {
 
 	// Verify - agents copied from embedded profiles
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/team-lead.md")
-	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/architect.md")
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/team-lead.md")
-	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/architect.md")
 
 	// Verify - settings.local.json created with hook registrations
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/settings.local.json")
@@ -152,9 +150,6 @@ func Test_Execute_RespectsNoOverwrite(t *testing.T) {
 	testutil.AssertFileContains(t, h.FS, "/project/.claude/settings.local.json", "notification-hook.sh")
 	testutil.AssertFileContains(t, h.FS, "/project/.claude/settings.local.json", "session-end.sh")
 	testutil.AssertFileContains(t, h.FS, "/project/.claude/settings.local.json", "Notification")
-
-	// Verify - architect agent copied from embedded profiles (noOverwrite only prevents overwriting existing files)
-	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/architect.md")
 }
 
 // Test_Execute_GeneratesEngineerProfiles verifies that engineer
@@ -590,4 +585,50 @@ func Test_Execute_MergesWithAbsolutePaths(t *testing.T) {
 	content, err := afero.ReadFile(h.FS, "/project/.claude/settings.local.json")
 	require.NoError(t, err)
 	assert.NotContains(t, string(content), `".claude/hooks/`)
+}
+
+// Test_Execute_CleansUpDeprecatedAgents verifies that deprecated agent files
+// (architect.md, researcher.md) are removed during setup (e.g., after upgrade).
+func Test_Execute_CleansUpDeprecatedAgents(t *testing.T) {
+	// Setup
+	h := testutil.NewTestHarness()
+	h.Env.Set("HOME", "/home/user")
+
+	// Create optional hooks config
+	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
+	})
+
+	// Create project with deprecated agent files (simulating upgrade scenario)
+	h.CreateDir("/project")
+	h.WriteFile("/project/package.json", `{"name": "test"}`)
+	h.FS.MkdirAll("/project/.claude/agents", 0755)
+	h.FS.MkdirAll("/project/.claude/commands/agents", 0755)
+	// Create deprecated agents that should be removed
+	afero.WriteFile(h.FS, "/project/.claude/agents/architect.md", []byte("old architect"), 0644)
+	afero.WriteFile(h.FS, "/project/.claude/agents/researcher.md", []byte("old researcher"), 0644)
+	afero.WriteFile(h.FS, "/project/.claude/commands/agents/architect.md", []byte("old architect"), 0644)
+	afero.WriteFile(h.FS, "/project/.claude/commands/agents/researcher.md", []byte("old researcher"), 0644)
+	// Create a custom agent that should be preserved
+	afero.WriteFile(h.FS, "/project/.claude/agents/custom-agent.md", []byte("custom agent"), 0644)
+
+	// Act
+	uc := New(h.FS, h.Env)
+	err := uc.Execute("/project", false)
+
+	// Assert - no errors
+	require.NoError(t, err)
+
+	// Assert - deprecated agents should be removed
+	testutil.AssertNoFileExists(t, h.FS, "/project/.claude/agents/architect.md")
+	testutil.AssertNoFileExists(t, h.FS, "/project/.claude/agents/researcher.md")
+	testutil.AssertNoFileExists(t, h.FS, "/project/.claude/commands/agents/architect.md")
+	testutil.AssertNoFileExists(t, h.FS, "/project/.claude/commands/agents/researcher.md")
+
+	// Assert - valid agents should exist
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/team-lead.md")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/team-lead.md")
+
+	// Assert - custom user agents should be preserved
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/custom-agent.md")
 }

@@ -22,7 +22,7 @@ import (
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: claudex-hooks <command>\n")
-		fmt.Fprintf(os.Stderr, "Commands: notification, pre-tool-use, post-tool-use, auto-doc, session-end, subagent-stop\n")
+		fmt.Fprintf(os.Stderr, "Commands: notification, pre-tool-use, post-tool-use, auto-doc, doc-update, session-end, subagent-stop\n")
 		os.Exit(1)
 	}
 
@@ -57,6 +57,8 @@ func main() {
 		err = handleSessionEnd(fs, cmdr, environ, logger, parser, builder)
 	case "subagent-stop":
 		err = handleSubagentStop(fs, cmdr, environ, logger, parser, builder)
+	case "doc-update":
+		err = handleDocUpdate(fs, cmdr, environ, logger, parser)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", cmd)
 		os.Exit(1)
@@ -185,6 +187,39 @@ func handleSubagentStop(fs afero.Fs, cmdr commander.Commander, environ env.Envir
 	}
 
 	return builder.BuildCustom(*output)
+}
+
+// handleDocUpdate processes doc-update commands (detached subprocess for background updates)
+func handleDocUpdate(fs afero.Fs, cmdr commander.Commander, environ env.Environment, logger *shared.Logger, parser *shared.Parser) error {
+	input, err := parser.ParseDocUpdate()
+	if err != nil {
+		return err
+	}
+
+	_ = logger.LogInfo(fmt.Sprintf("Starting doc update for session: %s", input.SessionPath))
+
+	// Create documentation updater
+	updater := doc.NewUpdater(fs, cmdr, environ)
+
+	// Convert input to UpdaterConfig
+	config := doc.UpdaterConfig{
+		SessionPath:    input.SessionPath,
+		TranscriptPath: input.TranscriptPath,
+		OutputFile:     input.OutputFile,
+		PromptTemplate: input.PromptTemplate,
+		SessionContext: input.SessionContext,
+		Model:          input.Model,
+		StartLine:      input.StartLine,
+	}
+
+	// Run synchronously - this process is detached and can take its time
+	if err := updater.Run(config); err != nil {
+		_ = logger.LogError(fmt.Errorf("doc update failed: %w", err))
+		return err
+	}
+
+	_ = logger.LogInfo("Doc update completed successfully")
+	return nil
 }
 
 // commanderAdapter adapts commander.Commander to notify.Dependencies

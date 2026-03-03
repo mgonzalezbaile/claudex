@@ -35,6 +35,12 @@ func NewAutoDocHandler(fs afero.Fs, env env.Environment, updater doc.Documentati
 
 // Handle checks counter and triggers doc update if threshold reached
 func (h *AutoDocHandler) Handle(input *shared.PostToolUseInput) (*shared.HookOutput, error) {
+	// Skip processing for internal Claude invocations (e.g., from doc-update subprocess)
+	// Only the main user session should trigger documentation updates
+	if h.env.Get("CLAUDE_HOOK_INTERNAL") == "1" {
+		return h.allowOutput(), nil
+	}
+
 	// Find session folder
 	sessionPath, err := session.FindSessionFolderWithCwd(h.fs, h.env, input.SessionID, input.CWD)
 	if err != nil {
