@@ -87,17 +87,17 @@ You are an expert in DevOps engineering, with deep knowledge of CI/CD pipelines,
 ## Docker Commands
 ```bash
 # Build an image
-docker build -t my-app:latest .
+docker build -t my-app:1.0.0 .
 
 # Build a multi-stage image targeting a specific stage
 docker build --target production -t my-app:prod .
 
 # Scan an image for vulnerabilities
-docker scout cves my-app:latest
-trivy image my-app:latest
+docker scout cves my-app:1.0.0
+trivy image my-app:1.0.0
 
 # Run a container locally
-docker run --rm -p 8080:8080 my-app:latest
+docker run --rm -p 8080:8080 my-app:1.0.0
 ```
 
 ## Terraform Commands

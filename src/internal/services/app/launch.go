@@ -79,7 +79,7 @@ func (a *App) launch(si SessionInfo) error {
 		return fmt.Errorf("unknown launch mode: %s", si.Mode)
 	}
 
-	if launchErr == nil && si.Name != "" && si.Name != "ephemeral" {
+	if launchErr == nil && si.Name != "" && si.Mode != LaunchModeEphemeral {
 		ui.ShowSessionEnded(si.Name)
 	}
 	return launchErr

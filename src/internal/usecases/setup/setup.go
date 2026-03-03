@@ -138,7 +138,7 @@ func (uc *SetupUseCase) Execute(projectDir string, noOverwrite bool) error {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to create principal-engineer alias: %v\n", err)
 	}
 
-	fmt.Printf("✓ Created .claude directory with %d engineer profile(s)\n", len(stacks))
+	fmt.Printf("✓ Created .claude directory with %d engineer profile(s)\n", len(stacks)+1)
 	return nil
 }
 

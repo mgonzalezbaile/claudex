@@ -85,7 +85,7 @@ flutter test test/path/to/widget_test.dart
 # Run integration tests (requires a connected device or emulator)
 flutter test integration_test/
 
-# Analyse code for issues
+# Analyze code for issues
 flutter analyze
 
 # Format all Dart files
