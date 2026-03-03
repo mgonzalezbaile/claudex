@@ -9,6 +9,7 @@ import "time"
 type SessionItem struct {
 	Title       string
 	Description string
+	Date        string
 	Created     time.Time
 	ItemType    string // "new", "ephemeral", "session"
 }

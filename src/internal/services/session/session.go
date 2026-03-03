@@ -3,7 +3,6 @@
 package session
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -57,7 +56,8 @@ func GetSessions(fs afero.Fs, sessionsDir string) ([]SessionItem, error) {
 
 		sessions = append(sessions, SessionItem{
 			Title:       entry.Name(),
-			Description: fmt.Sprintf("%s • %s", desc, lastUsedStr),
+			Description: desc,
+			Date:        lastUsedStr,
 			Created:     lastUsedTime,
 			ItemType:    "session",
 		})

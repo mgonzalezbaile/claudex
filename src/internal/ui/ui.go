@@ -238,7 +238,7 @@ func (m Model) View() string {
 // Custom delegate for better item rendering
 type ItemDelegate struct{}
 
-func (d ItemDelegate) Height() int                             { return 2 }
+func (d ItemDelegate) Height() int                             { return 3 }
 func (d ItemDelegate) Spacing() int                            { return 0 }
 func (d ItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
@@ -264,8 +264,14 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	}
 
 	str := fmt.Sprintf("%s %s", icon, i.Title)
-	if i.Description != "" {
-		str = fmt.Sprintf("%s\n   %s", str, dimmedItemStyle.Render(i.Description))
+	if i.Description != "" && i.Date != "" {
+		str = fmt.Sprintf("%s\n   %s\n   %s", str, dimmedItemStyle.Render(i.Description), dimmedItemStyle.Render(i.Date))
+	} else if i.Description == "" && i.Date != "" {
+		str = fmt.Sprintf("%s\n   %s\n   ", str, dimmedItemStyle.Render(i.Date))
+	} else if i.Description != "" {
+		str = fmt.Sprintf("%s\n   %s\n   ", str, dimmedItemStyle.Render(i.Description))
+	} else {
+		str = fmt.Sprintf("%s\n   \n   ", str)
 	}
 
 	if index == m.Index() {
