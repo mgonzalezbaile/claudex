@@ -128,12 +128,17 @@ func (uc *SetupUseCase) Execute(projectDir string, noOverwrite bool) error {
 		}
 	}
 
+	// Always generate DevOps engineer (not detection-based)
+	if err := AssembleEngineerAgent(uc.fs, "devops", agentsDir, commandsAgentsDir, noOverwrite); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to assemble principal-engineer-devops: %v\n", err)
+	}
+
 	// Create principal-engineer alias by copying the primary stack's agent
 	if err := uc.createEngineerAlias(stacks, agentsDir, commandsAgentsDir, noOverwrite); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to create principal-engineer alias: %v\n", err)
 	}
 
-	fmt.Printf("✓ Created .claude directory with %d engineer profile(s)\n", len(stacks))
+	fmt.Printf("✓ Created .claude directory with %d engineer profile(s)\n", len(stacks)+1)
 	return nil
 }
 

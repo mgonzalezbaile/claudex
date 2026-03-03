@@ -238,7 +238,7 @@ func (m Model) View() string {
 // Custom delegate for better item rendering
 type ItemDelegate struct{}
 
-func (d ItemDelegate) Height() int                             { return 2 }
+func (d ItemDelegate) Height() int                             { return 3 }
 func (d ItemDelegate) Spacing() int                            { return 0 }
 func (d ItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
@@ -264,7 +264,11 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	}
 
 	str := fmt.Sprintf("%s %s", icon, i.Title)
-	if i.Description != "" {
+	if i.Description != "" && i.Date != "" {
+		str = fmt.Sprintf("%s\n   %s\n   %s", str, dimmedItemStyle.Render(i.Description), dimmedItemStyle.Render(i.Date))
+	} else if i.Description == "" && i.Date != "" {
+		str = fmt.Sprintf("%s\n   %s", str, dimmedItemStyle.Render(i.Date))
+	} else if i.Description != "" {
 		str = fmt.Sprintf("%s\n   %s", str, dimmedItemStyle.Render(i.Description))
 	}
 
@@ -371,4 +375,9 @@ func ShowSessionForked(originalName, newName string) {
 // Parameters: originalName, newName
 func ShowFreshMemory(originalName, newName string) {
 	fmt.Printf("\n\033[1;32m🔄 Fresh memory: %s → %s (original deleted)\033[0m\n", originalName, newName)
+}
+
+// ShowSessionEnded displays the session name after a successful session exit.
+func ShowSessionEnded(sessionName string) {
+	fmt.Printf("\n📦 Session: %s\n\n", sessionName)
 }

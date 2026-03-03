@@ -9,6 +9,7 @@ import (
 
 	"claudex/internal/services/config"
 	"claudex/internal/services/session"
+	"claudex/internal/ui"
 )
 
 // setEnvironment sets environment variables needed for Claude session
@@ -62,20 +63,26 @@ func (a *App) launch(si SessionInfo) error {
 	fmt.Print("\033[H\033[2J\033[3J") // Clear screen and scrollback
 	fmt.Print("\033[0m")              // Reset all attributes
 
+	var launchErr error
 	switch si.Mode {
 	case LaunchModeNew:
-		return a.launchNew(si)
+		launchErr = a.launchNew(si)
 	case LaunchModeResume:
-		return a.launchResume(si)
+		launchErr = a.launchResume(si)
 	case LaunchModeFork:
-		return a.launchFork(si)
+		launchErr = a.launchFork(si)
 	case LaunchModeFresh:
-		return a.launchFresh(si)
+		launchErr = a.launchFresh(si)
 	case LaunchModeEphemeral:
-		return a.launchEphemeral(si)
+		launchErr = a.launchEphemeral(si)
 	default:
 		return fmt.Errorf("unknown launch mode: %s", si.Mode)
 	}
+
+	if launchErr == nil && si.Name != "" && si.Mode != LaunchModeEphemeral {
+		ui.ShowSessionEnded(si.Name)
+	}
+	return launchErr
 }
 
 // launchNew launches a new Claude session

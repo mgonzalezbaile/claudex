@@ -1,12 +1,14 @@
 package session
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"claudex/internal/testutil"
 
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )
 
@@ -159,4 +161,43 @@ func Test_UpdateLastUsedWithDeps_EphemeralSession(t *testing.T) {
 
 	// Verify - no error for ephemeral sessions
 	require.NoError(t, err)
+}
+
+// Test_GetSessions verifies that Description and Date fields are populated separately
+func Test_GetSessions(t *testing.T) {
+	t.Run("uses last_used for date", func(t *testing.T) {
+		sessionsDir := t.TempDir()
+		sessionDir := filepath.Join(sessionsDir, "feature-login")
+		require.NoError(t, os.MkdirAll(sessionDir, 0755))
+
+		fs := afero.NewOsFs()
+		require.NoError(t, afero.WriteFile(fs, filepath.Join(sessionDir, ".description"), []byte("Login feature"), 0644))
+		require.NoError(t, afero.WriteFile(fs, filepath.Join(sessionDir, ".last_used"), []byte("2024-06-15T10:30:00Z"), 0644))
+
+		sessions, err := GetSessions(fs, sessionsDir)
+
+		require.NoError(t, err)
+		require.Len(t, sessions, 1)
+		require.Equal(t, "feature-login", sessions[0].Title)
+		require.Equal(t, "Login feature", sessions[0].Description)
+		require.Equal(t, "15 Jun 2024 10:30:00", sessions[0].Date)
+	})
+
+	t.Run("falls back to created when last_used absent", func(t *testing.T) {
+		sessionsDir := t.TempDir()
+		sessionDir := filepath.Join(sessionsDir, "feature-signup")
+		require.NoError(t, os.MkdirAll(sessionDir, 0755))
+
+		fs := afero.NewOsFs()
+		require.NoError(t, afero.WriteFile(fs, filepath.Join(sessionDir, ".description"), []byte("Signup flow"), 0644))
+		require.NoError(t, afero.WriteFile(fs, filepath.Join(sessionDir, ".created"), []byte("2024-03-01T08:00:00Z"), 0644))
+
+		sessions, err := GetSessions(fs, sessionsDir)
+
+		require.NoError(t, err)
+		require.Len(t, sessions, 1)
+		require.Equal(t, "feature-signup", sessions[0].Title)
+		require.Equal(t, "Signup flow", sessions[0].Description)
+		require.Equal(t, "1 Mar 2024 08:00:00", sessions[0].Date)
+	})
 }

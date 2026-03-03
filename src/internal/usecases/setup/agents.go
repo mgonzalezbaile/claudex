@@ -93,6 +93,10 @@ func formatStackName(stack string) string {
 		return "Python"
 	case "php":
 		return "PHP"
+	case "flutter":
+		return "Flutter/Dart"
+	case "devops":
+		return "DevOps"
 	default:
 		return strings.Title(stack)
 	}

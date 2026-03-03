@@ -72,6 +72,10 @@ func Test_Execute_CreatesStructure(t *testing.T) {
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-typescript.md")
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/principal-engineer-typescript.md")
 
+	// Verify - devops always generated regardless of detected stacks
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-devops.md")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/principal-engineer-devops.md")
+
 	// Verify - principal-engineer alias created (points to primary stack)
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer.md")
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/principal-engineer.md")
@@ -250,6 +254,9 @@ func Test_Execute_MultipleStacks(t *testing.T) {
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-typescript.md")
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-go.md")
 
+	// Verify - devops always generated regardless of detected stacks
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-devops.md")
+
 	// Verify - principal-engineer alias points to first detected stack (typescript)
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer.md")
 	aliasContent, err := h.FS.Open("/project/.claude/agents/principal-engineer.md")
@@ -341,6 +348,9 @@ func Test_Execute_NoStackDetected(t *testing.T) {
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-go.md")
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-python.md")
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-php.md")
+
+	// Verify - devops always generated regardless of detected stacks
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-devops.md")
 
 	// Verify - principal-engineer alias created (first default: typescript)
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer.md")
@@ -631,4 +641,110 @@ func Test_Execute_CleansUpDeprecatedAgents(t *testing.T) {
 
 	// Assert - custom user agents should be preserved
 	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/custom-agent.md")
+}
+
+// Test_Execute_DevOpsAlwaysCreated verifies that the DevOps engineer agent is always
+// created regardless of which stacks are detected.
+func Test_Execute_DevOpsAlwaysCreated(t *testing.T) {
+	// Setup
+	h := testutil.NewTestHarness()
+	h.Env.Set("HOME", "/home/user")
+
+	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
+	})
+
+	// Create project with only package.json (TypeScript detected)
+	h.CreateDir("/project")
+	h.WriteFile("/project/package.json", `{"name": "test-project"}`)
+
+	// Exercise
+	uc := New(h.FS, h.Env)
+	err := uc.Execute("/project", false)
+
+	// Verify - no errors
+	require.NoError(t, err)
+
+	// Verify - TypeScript agent generated from stack detection
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-typescript.md")
+
+	// Verify - DevOps agent generated regardless of detected stacks
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-devops.md")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/commands/agents/principal-engineer-devops.md")
+}
+
+// Test_Execute_AliasPointsToRNNotFlutter verifies that when both React Native and Flutter
+// markers exist, the principal-engineer alias points to React Native (first detected).
+func Test_Execute_AliasPointsToRNNotFlutter(t *testing.T) {
+	// Setup
+	h := testutil.NewTestHarness()
+	h.Env.Set("HOME", "/home/user")
+
+	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
+	})
+
+	// Create project with both React Native and Flutter markers
+	h.CreateDir("/project")
+	h.WriteFile("/project/app.json", `{"name": "my-rn-app"}`)
+	h.WriteFile("/project/pubspec.yaml", "name: my_flutter_module")
+
+	// Exercise
+	uc := New(h.FS, h.Env)
+	err := uc.Execute("/project", false)
+
+	// Verify - no errors
+	require.NoError(t, err)
+
+	// Verify - both agents generated
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-react-native.md")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-flutter.md")
+
+	// Read alias content
+	aliasContent, err := afero.ReadFile(h.FS, "/project/.claude/agents/principal-engineer.md")
+	require.NoError(t, err)
+	aliasStr := string(aliasContent)
+
+	// Alias must point to React Native (first detected) — not Flutter
+	assert.Contains(t, aliasStr, "React Native", "alias should reference React Native as the primary stack")
+	assert.NotContains(t, aliasStr, "# Flutter/Dart Skill", "alias must not contain Flutter/Dart skill when React Native is primary")
+	assert.NotContains(t, aliasStr, "Principal Flutter/Dart Engineer", "alias must not reference Flutter/Dart as the engineer role")
+}
+
+// Test_Execute_AliasPointsToFlutterNotTypeScript verifies that when both Flutter and TypeScript
+// markers exist, the principal-engineer alias points to Flutter (detected before TypeScript).
+func Test_Execute_AliasPointsToFlutterNotTypeScript(t *testing.T) {
+	// Setup
+	h := testutil.NewTestHarness()
+	h.Env.Set("HOME", "/home/user")
+
+	h.SetupConfigDir("/home/user/.config/claudex", map[string]string{
+		"hooks/notification-hook.sh": "#!/bin/bash\necho notify",
+	})
+
+	// Create project with both Flutter and TypeScript markers
+	h.CreateDir("/project")
+	h.WriteFile("/project/pubspec.yaml", "name: my_app")
+	h.WriteFile("/project/package.json", `{"name": "my-app"}`)
+
+	// Exercise
+	uc := New(h.FS, h.Env)
+	err := uc.Execute("/project", false)
+
+	// Verify - no errors
+	require.NoError(t, err)
+
+	// Verify - both agents generated
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-flutter.md")
+	testutil.AssertFileExists(t, h.FS, "/project/.claude/agents/principal-engineer-typescript.md")
+
+	// Read alias content
+	aliasContent, err := afero.ReadFile(h.FS, "/project/.claude/agents/principal-engineer.md")
+	require.NoError(t, err)
+	aliasStr := string(aliasContent)
+
+	// Alias must point to Flutter (detected before TypeScript)
+	assert.Contains(t, aliasStr, "Flutter/Dart", "alias should reference Flutter/Dart as the primary stack")
+	assert.NotContains(t, aliasStr, "# TypeScript Skill", "alias must not contain TypeScript skill when Flutter/Dart is primary")
+	assert.NotContains(t, aliasStr, "Principal TypeScript Engineer", "alias must not reference TypeScript as the engineer role")
 }

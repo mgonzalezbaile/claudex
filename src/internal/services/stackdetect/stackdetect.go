@@ -1,5 +1,5 @@
 // Package stackdetect provides technology stack detection for projects.
-// It identifies project technologies (TypeScript, Go, Python, PHP) by scanning
+// It identifies project technologies (TypeScript, Go, Python, React Native, PHP, Flutter/Dart) by scanning
 // for marker files like tsconfig.json, go.mod, pyproject.toml, etc.
 package stackdetect
 
@@ -20,6 +20,11 @@ func Detect(fs afero.Fs, projectDir string) []string {
 		FindFile(fs, projectDir, "react-native.config.js", 3) ||
 		FindFile(fs, projectDir, "metro.config.js", 3) {
 		stacks = append(stacks, "react-native")
+	}
+
+	// Flutter/Dart detection (after React Native, before TypeScript)
+	if FindFile(fs, projectDir, "pubspec.yaml", 3) {
+		stacks = append(stacks, "flutter")
 	}
 
 	// TypeScript detection

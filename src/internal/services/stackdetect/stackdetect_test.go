@@ -135,6 +135,11 @@ func Test_Detect(t *testing.T) {
 			wantStacks: []string{"typescript", "go", "python"},
 		},
 		{
+			name:       "Flutter via pubspec.yaml",
+			files:      map[string]string{"pubspec.yaml": "name: my_app"},
+			wantStacks: []string{"flutter"},
+		},
+		{
 			name:       "No stacks detected",
 			files:      map[string]string{"README.md": "# Readme"},
 			wantStacks: []string{},
@@ -183,6 +188,31 @@ func Test_Detect(t *testing.T) {
 				"Stack detection mismatch for test case: %s", tt.name)
 		})
 	}
+
+	// Order-sensitive combo tests: use assert.Equal because ordering determines alias selection.
+	t.Run("React Native and Flutter - RN must be first", func(t *testing.T) {
+		h := testutil.NewTestHarness()
+		h.CreateDir("/project")
+		h.WriteFile("/project/app.json", `{"name": "my-rn-app"}`)
+		h.WriteFile("/project/pubspec.yaml", "name: my_app")
+
+		stacks := Detect(h.FS, "/project")
+
+		assert.Equal(t, []string{"react-native", "flutter"}, stacks,
+			"React Native must appear before Flutter to preserve alias semantics")
+	})
+
+	t.Run("Flutter and TypeScript - Flutter must be first", func(t *testing.T) {
+		h := testutil.NewTestHarness()
+		h.CreateDir("/project")
+		h.WriteFile("/project/pubspec.yaml", "name: my_app")
+		h.WriteFile("/project/package.json", `{"name": "test"}`)
+
+		stacks := Detect(h.FS, "/project")
+
+		assert.Equal(t, []string{"flutter", "typescript"}, stacks,
+			"Flutter must appear before TypeScript to preserve alias semantics")
+	})
 }
 
 func Test_FindFile_RespectsMaxDepth(t *testing.T) {

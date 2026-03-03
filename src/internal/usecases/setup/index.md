@@ -1,6 +1,6 @@
 # Setup Usecase
 
-Initializes .claude directory structure with hooks, agents, commands, and project-specific configuration. Detects project technology stacks (TypeScript, Go, Python, React Native, PHP) and generates appropriate principal-engineer agents by assembling embedded role and skill templates.
+Initializes .claude directory structure with hooks, agents, commands, and project-specific configuration. Detects project technology stacks (TypeScript, Go, Python, React Native, PHP, Flutter/Dart) and generates appropriate principal-engineer agents by assembling embedded role and skill templates. A DevOps engineer agent is always generated regardless of detected stacks.
 
 ## Key Files
 
@@ -20,6 +20,7 @@ Profiles (roles, skills, and agents) are embedded in the binary using Go's embed
 The setup process automatically detects project technology stacks via marker files:
 
 - **React Native**: app.json, react-native.config.js, metro.config.js
+- **Flutter/Dart**: pubspec.yaml
 - **TypeScript/JavaScript**: tsconfig.json, package.json
 - **Go**: go.mod
 - **Python**: pyproject.toml, requirements.txt, setup.py, Pipfile
@@ -40,14 +41,15 @@ The `Execute` method creates the complete .claude directory structure:
    - Engineer role template (profiles/roles/engineer.md)
    - Stack-specific skill (profiles/skills/{stack}.md, e.g., typescript.md)
    - Common design principles skill (profiles/skills/software-design-principles.md)
-6. Creates principal-engineer.md alias pointing to primary stack's agent
-7. Creates settings.local.json with hooks configuration
+6. Always generates principal-engineer-devops.md regardless of detected stacks
+7. Creates principal-engineer.md alias pointing to primary stack's agent (DevOps is never the alias target)
+8. Creates settings.local.json with hooks configuration
 
 ## Agent Assembly
 
 The `AssembleEngineerAgent` function combines three profile components:
 
 1. **Frontmatter** - Auto-generated with agent name, description, model, and color
-2. **Engineer Role** - Base role template customized with stack display name (TypeScript, Go, Python, React Native)
+2. **Engineer Role** - Base role template customized with stack display name (TypeScript, Go, Python, React Native, Flutter/Dart, DevOps)
 3. **Stack Skill** - Stack-specific capabilities (e.g., TypeScript-specific patterns)
 4. **Design Principles Skill** - Common design principles applied across all principal engineers (fail-fast, type safety, make illegal states unrepresentable, etc.)
