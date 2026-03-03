@@ -1,10 +1,14 @@
-.PHONY: all build clean install install-project uninstall help test run deps fmt vet check
+.PHONY: all build clean install install-project uninstall help test run deps fmt vet check \
+       go-build go-test go-check go-clean
 
 # Configuration
 SRC_DIR = src
 CONFIG_DIR = $(HOME)/.config/claudex
 BIN_DIR = $(HOME)/.local/bin
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+GO_VERSION_REQUIRED = $(shell grep '^go ' $(SRC_DIR)/go.mod | awk '{print $$2}')
+GO_SDK_DIR = $(CURDIR)/.cache/go$(GO_VERSION_REQUIRED)
+GO_CMD = $(GO_SDK_DIR)/bin/go
 
 # Default target
 all: help
@@ -166,6 +170,41 @@ npm-clean:
 	rm -rf dist/
 	rm -rf npm/@claudex/*/bin/*
 
+# Go SDK download targets (for when local Go version doesn't match go.mod)
+# Downloads the required Go version to .cache/ and uses it for build/test.
+
+$(GO_CMD):
+	@echo "Downloading Go $(GO_VERSION_REQUIRED)..."
+	@mkdir -p .cache
+	@GOARCH=$$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'); \
+	 GOOS=$$(uname -s | tr '[:upper:]' '[:lower:]'); \
+	 TARBALL="go$(GO_VERSION_REQUIRED).$${GOOS}-$${GOARCH}.tar.gz"; \
+	 curl -fsSL "https://go.dev/dl/$${TARBALL}" -o ".cache/$${TARBALL}" && \
+	 mkdir -p "$(GO_SDK_DIR)" && \
+	 tar -xzf ".cache/$${TARBALL}" -C "$(GO_SDK_DIR)" --strip-components=1 && \
+	 rm ".cache/$${TARBALL}"
+	@echo "✓ Go $(GO_VERSION_REQUIRED) installed to $(GO_SDK_DIR)"
+
+go-build: $(GO_CMD)
+	@echo "Building claudex $(VERSION) with Go $(GO_VERSION_REQUIRED)..."
+	@cd $(SRC_DIR) && $(GO_CMD) build -ldflags "-X main.Version=$(VERSION)" -o ../claudex ./cmd/claudex
+	@echo "✓ Built: claudex $(VERSION)"
+
+go-test: $(GO_CMD)
+	@echo "Running tests with Go $(GO_VERSION_REQUIRED)..."
+	@cd $(SRC_DIR) && $(GO_CMD) test -v ./...
+	@echo "✓ Tests complete"
+
+go-check: $(GO_CMD)
+	@echo "Running checks with Go $(GO_VERSION_REQUIRED)..."
+	@cd $(SRC_DIR) && $(GO_CMD) fmt ./... && $(GO_CMD) vet ./... && $(GO_CMD) test -v ./...
+	@echo "✓ All checks passed"
+
+go-clean:
+	@echo "Removing downloaded Go SDK..."
+	@rm -rf $(GO_SDK_DIR)
+	@echo "✓ Go SDK removed"
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -184,6 +223,13 @@ help:
 	@echo "  make install-project - Install profiles/hooks to current project .claude/"
 	@echo "  make clean           - Remove build artifacts"
 	@echo "  make run             - Build and run"
+	@echo ""
+	@echo "Go SDK targets (when local Go != $(GO_VERSION_REQUIRED)):"
+	@echo "  make go-build        - Build claudex using downloaded Go SDK"
+	@echo "  make go-test         - Run tests using downloaded Go SDK"
+	@echo "  make go-check        - Run fmt, vet, and test using downloaded Go SDK"
+	@echo "  make go-clean        - Remove downloaded Go SDK from .cache/"
+	@echo ""
 	@echo "  make npm-build       - Cross-compile binaries for all npm platforms"
 	@echo "  make npm-package     - Build and assemble npm packages"
 	@echo "  make npm-sync-version - Sync version from version.txt to all package.json files"
