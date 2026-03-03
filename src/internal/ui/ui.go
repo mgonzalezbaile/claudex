@@ -267,11 +267,9 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	if i.Description != "" && i.Date != "" {
 		str = fmt.Sprintf("%s\n   %s\n   %s", str, dimmedItemStyle.Render(i.Description), dimmedItemStyle.Render(i.Date))
 	} else if i.Description == "" && i.Date != "" {
-		str = fmt.Sprintf("%s\n   %s\n   ", str, dimmedItemStyle.Render(i.Date))
+		str = fmt.Sprintf("%s\n   %s", str, dimmedItemStyle.Render(i.Date))
 	} else if i.Description != "" {
-		str = fmt.Sprintf("%s\n   %s\n   ", str, dimmedItemStyle.Render(i.Description))
-	} else {
-		str = fmt.Sprintf("%s\n   \n   ", str)
+		str = fmt.Sprintf("%s\n   %s", str, dimmedItemStyle.Render(i.Description))
 	}
 
 	if index == m.Index() {
