@@ -16,3 +16,6 @@ npm/@claudex/darwin-*/bin/
 npm/@claudex/linux-*/bin/
 *.tgz
 .claudex/
+
+# Cursor session data (ephemeral, per-user)
+.cursor/sessions/
