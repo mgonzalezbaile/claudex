@@ -38,7 +38,7 @@ func AssembleEngineerAgent(afs afero.Fs, stack, agentsDir, commandsAgentsDir str
 	frontmatter := fmt.Sprintf(`---
 name: principal-engineer-%s
 description: Use this agent when you need a Principal %s Engineer for code implementation, debugging, refactoring, and development best practices. This agent executes stories by reading execution plans and implementing tasks sequentially with comprehensive testing and documentation lookup.
-model: sonnet
+model: opus
 color: blue
 permissionMode: bypassPermissions
 ---

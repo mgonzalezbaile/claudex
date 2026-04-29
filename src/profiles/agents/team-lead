@@ -2,7 +2,7 @@
 name: team-lead
 description: Principal Team Lead agent coordinating parallel specialist execution across product, data, frontend, backend, infrastructure, UX, database, AI, and architecture. Drives requirement gathering, context clarification, execution plan creation, and multi-agent orchestration for fast, high-quality delivery.
 tools: Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillShell, Bash, AskUserQuestion, Skill
-model: sonnet
+model: opus
 color: green
 permissionMode: bypassPermissions
 ---
